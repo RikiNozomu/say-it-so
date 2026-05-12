@@ -22,46 +22,18 @@ export interface Keyframe {
   cubicBezier?: CubicBezierParams;
 }
 
-export type StripePattern =
-  | 'solid'
-  | 'halved-h'
-  | 'halved-v'
-  | 'diagonal-left'
-  | 'diagonal-right'
-  | 'chevron-up'
-  | 'chevron-down'
-  | 'hoops'
-  | 'quartered'
-  | 'cross-sash'
-  | 'dots'
-  | 'stripes-h'
-  | 'stripes-v'
-  | 'stripes-diagonal'
-  | 'panel-front'
-  | 'panel-back'
-  | 'sleeves-contrast'
-  | 'star'
-  | 'diamond'
-  | 'seabiscuit'   // classic brown/red
-  | 'royal'        // blue/gold
-  | 'emerald'      // green/white
-  | 'sunset'       // orange/purple
-  | 'monochrome';  // black/white
-
 export interface Horse {
   id: string;
   number: number;
   name: string;
-  jockey: string;
-  stable: string;
-  breeder: string;
-  baseColor: string;       // hex
-  stripeColor: string;     // hex
-  pattern: StripePattern;
+  color: string;       // hex — circle background
+  textColor: string;   // hex — number text
   keyframes: Keyframe[];
 }
 
-export type TrackShapeType = 'bezier' | 'rect' | 'ellipse' | 'polygon' | 'pen';
+export type TrackShapeType = 'bezier' | 'rect' | 'ellipse' | 'polygon' | 'pen' | 'ruler';
+
+export type RulerUnit = 'px' | 'm' | 'mi' | 'fur';
 
 export interface PenAnchor {
   x: number;
@@ -87,6 +59,15 @@ export interface TrackShape {
   visible?: boolean;
   locked?: boolean;
   penAnchors?: PenAnchor[];
+  rulerUnit?: RulerUnit;
+  rulerLabelColor?: string;
+  rulerLabelColorOpacity?: number;
+  rulerLabelBg?: string;
+  rulerLabelBgOpacity?: number;
+  rulerSeqInterval?: number;   // interval in the ruler's unit (0 = disabled)
+  rulerSeqColor?: string;
+  rulerSeqColorOpacity?: number;
+  rulerFontSize?: number;
 }
 
 export interface RefImage {

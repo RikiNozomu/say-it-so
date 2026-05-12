@@ -25,18 +25,29 @@ export function shapeToPenAnchors(shape: TrackShape): PenAnchor[] | null {
   return anchors.length >= 2 ? anchors : null
 }
 
+// When cpOut is degenerate (retracted to anchor) but cpIn is not, reflect cpIn
+// to get the natural outgoing tangent direction.
+function effectiveCpOut(a: PenAnchor): { x: number; y: number } {
+  if (a.cpOut.x === a.x && a.cpOut.y === a.y && (a.cpIn.x !== a.x || a.cpIn.y !== a.y)) {
+    return { x: 2 * a.x - a.cpIn.x, y: 2 * a.y - a.cpIn.y }
+  }
+  return a.cpOut
+}
+
 export function anchorsToPath(anchors: PenAnchor[], closed: boolean): string {
   if (anchors.length < 2) return ''
   let d = `M ${anchors[0].x} ${anchors[0].y}`
   for (let i = 1; i < anchors.length; i++) {
     const prev = anchors[i - 1]
     const curr = anchors[i]
-    d += ` C ${prev.cpOut.x} ${prev.cpOut.y} ${curr.cpIn.x} ${curr.cpIn.y} ${curr.x} ${curr.y}`
+    const cp1 = effectiveCpOut(prev)
+    d += ` C ${cp1.x} ${cp1.y} ${curr.cpIn.x} ${curr.cpIn.y} ${curr.x} ${curr.y}`
   }
   if (closed) {
     const prev = anchors[anchors.length - 1]
     const first = anchors[0]
-    d += ` C ${prev.cpOut.x} ${prev.cpOut.y} ${first.cpIn.x} ${first.cpIn.y} ${first.x} ${first.y} Z`
+    const cp1 = effectiveCpOut(prev)
+    d += ` C ${cp1.x} ${cp1.y} ${first.cpIn.x} ${first.cpIn.y} ${first.x} ${first.y} Z`
   }
   return d
 }

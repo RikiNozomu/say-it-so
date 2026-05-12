@@ -47,6 +47,15 @@ function canvasPos(stage: Konva.Stage) {
   return { x: (pos.x - stage.x()) / sc, y: (pos.y - stage.y()) / sc }
 }
 
+function snapAngle(fromX: number, fromY: number, toX: number, toY: number): { x: number; y: number } {
+  const dx = toX - fromX, dy = toY - fromY
+  const dist = Math.hypot(dx, dy)
+  if (dist === 0) return { x: toX, y: toY }
+  const step = (15 * Math.PI) / 180
+  const snapped = Math.round(Math.atan2(dy, dx) / step) * step
+  return { x: fromX + dist * Math.cos(snapped), y: fromY + dist * Math.sin(snapped) }
+}
+
 // ── drag state ───────────────────────────────────────────────────────────────
 
 type DragKind = 'anchor' | 'cpOut' | 'cpIn' | 'new-anchor'
@@ -76,7 +85,8 @@ export function EditOverlay({
   const { editingShapeId } = state
   if (!editingShapeId) return null
   const shape = state.trackShapes.find((s) => s.id === editingShapeId)
-  if (!shape || shape.type !== 'pen' || !shape.penAnchors) return null
+  if (!shape || (shape.type !== 'pen' && shape.type !== 'ruler') || !shape.penAnchors) return null
+  const isRuler = shape.type === 'ruler'
 
   // Keep ref in sync
   anchorsRef.current = shape.penAnchors
@@ -184,7 +194,16 @@ export function EditOverlay({
     if (!d) return
     const stage = e.target.getStage()
     if (!stage) return
-    const { x: mx, y: my } = canvasPos(stage)
+    let { x: mx, y: my } = canvasPos(stage)
+
+    // Shift = snap anchor movement to 15° increments relative to nearest neighbour
+    if (d.kind === 'anchor' && e.evt.shiftKey) {
+      const ancsNow = anchorsRef.current
+      const refIdx = d.idx > 0 ? d.idx - 1 : d.idx + 1
+      const ref = ancsNow[refIdx]
+      if (ref) ({ x: mx, y: my } = snapAngle(ref.x, ref.y, mx, my))
+    }
+
     const dist = Math.hypot(mx - d.startX, my - d.startY)
     if (dist > MOVE_THRESHOLD) d.hasMoved = true
 
@@ -205,8 +224,8 @@ export function EditOverlay({
           cpIn:  { x: d.origAnchor.cpIn.x  + dx, y: d.origAnchor.cpIn.y  + dy },
           cpOut: { x: d.origAnchor.cpOut.x + dx, y: d.origAnchor.cpOut.y + dy },
         }
-        // Snap-to-close: highlight the opposite endpoint when dragging this endpoint near it
-        if (!shape!.closed && (d.idx === 0 || d.idx === ancs.length - 1)) {
+        // Snap-to-close: highlight the opposite endpoint (pen only, not ruler)
+        if (!isRuler && !shape!.closed && (d.idx === 0 || d.idx === ancs.length - 1)) {
           const otherIdx = d.idx === 0 ? ancs.length - 1 : 0
           const other = ancs[otherIdx]
           const near = Math.hypot(mx - other.x, my - other.y) < SNAP * 1.5
@@ -241,8 +260,8 @@ export function EditOverlay({
 
     if (d.hasMoved) {
       setClosingHint(null)
-      // Endpoint dragged near the other endpoint → close path
-      if (d.kind === 'anchor' && !shape!.closed && (d.idx === 0 || d.idx === ancs.length - 1)) {
+      // Endpoint dragged near the other endpoint → close path (pen only)
+      if (!isRuler && d.kind === 'anchor' && !shape!.closed && (d.idx === 0 || d.idx === ancs.length - 1)) {
         const otherIdx = d.idx === 0 ? ancs.length - 1 : 0
         const other = ancs[otherIdx]
         if (Math.hypot(ancs[d.idx].x - other.x, ancs[d.idx].y - other.y) < SNAP * 1.5) {

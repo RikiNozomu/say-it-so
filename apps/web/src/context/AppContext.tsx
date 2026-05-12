@@ -18,6 +18,8 @@ interface AppContextValue {
   dispatch: React.Dispatch<Action>
   canUndo: boolean
   canRedo: boolean
+  penDrawing: boolean
+  setPenDrawing: (v: boolean) => void
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -40,6 +42,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const future = useRef<AppState[]>([])
   const [canUndo, setCanUndo] = useState(false)
   const [canRedo, setCanRedo] = useState(false)
+  const [penDrawing, setPenDrawing] = useState(false)
+  const penDrawingRef = useRef(false)
+  penDrawingRef.current = penDrawing
 
   const syncFlags = useCallback(() => {
     setCanUndo(past.current.length > 0)
@@ -48,7 +53,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const dispatch = useCallback((action: Action) => {
     if (action.type === 'UNDO') {
-      if (past.current.length === 0) return
+      if (past.current.length === 0 || penDrawingRef.current) return
       future.current.unshift(stateRef.current)
       if (future.current.length > MAX_HISTORY) future.current.pop()
       dispatchBase({ type: 'RESTORE_STATE', payload: past.current.pop()! })
@@ -56,7 +61,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return
     }
     if (action.type === 'REDO') {
-      if (future.current.length === 0) return
+      if (future.current.length === 0 || penDrawingRef.current) return
       past.current.push(stateRef.current)
       if (past.current.length > MAX_HISTORY) past.current.shift()
       dispatchBase({ type: 'RESTORE_STATE', payload: future.current.shift()! })
@@ -80,7 +85,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [state])
 
   return (
-    <AppContext.Provider value={{ state, dispatch, canUndo, canRedo }}>
+    <AppContext.Provider value={{ state, dispatch, canUndo, canRedo, penDrawing, setPenDrawing }}>
       {children}
     </AppContext.Provider>
   )

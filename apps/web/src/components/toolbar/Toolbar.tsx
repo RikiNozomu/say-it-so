@@ -9,7 +9,7 @@ const PANELS: { id: ActivePanel; label: string }[] = [
 ]
 
 export function Toolbar({ onSettingsClick }: { onSettingsClick: () => void }) {
-  const { state, dispatch, canUndo, canRedo } = useApp()
+  const { state, dispatch, canUndo, canRedo, penDrawing } = useApp()
   const { save, load } = useSaveLoad()
 
   return (
@@ -69,7 +69,7 @@ export function Toolbar({ onSettingsClick }: { onSettingsClick: () => void }) {
       {/* Undo / Redo */}
       <button
         onClick={() => dispatch({ type: 'UNDO' })}
-        disabled={!canUndo}
+        disabled={!canUndo || penDrawing}
         title="Undo (Ctrl+Z)"
         className="flex items-center justify-center w-7 h-7 border border-border rounded hover:bg-border transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-zinc-300"
       >
@@ -77,7 +77,7 @@ export function Toolbar({ onSettingsClick }: { onSettingsClick: () => void }) {
       </button>
       <button
         onClick={() => dispatch({ type: 'REDO' })}
-        disabled={!canRedo}
+        disabled={!canRedo || penDrawing}
         title="Redo (Ctrl+Shift+Z)"
         className="flex items-center justify-center w-7 h-7 border border-border rounded hover:bg-border transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-zinc-300"
       >

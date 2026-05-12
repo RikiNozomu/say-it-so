@@ -1,22 +1,18 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { FiEdit2, FiTrash2, FiPlus } from 'react-icons/fi'
-import type { Horse, StripePattern } from '@say-it-so/core'
+import type { Horse } from '@say-it-so/core'
 import { useApp } from '../../context/AppContext'
 import { HorseModal } from '../modals/HorseModal'
-import { getPatternDef } from '../canvas/horsePatterns'
 
-function MiniPreview({ horse }: { horse: Horse }) {
-  const ref = useRef<HTMLCanvasElement>(null)
-  useEffect(() => {
-    const canvas = ref.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')!
-    const size = 28
-    const r = size / 2 - 1
-    ctx.clearRect(0, 0, size, size)
-    getPatternDef(horse.pattern as StripePattern).draw(ctx, size / 2, size / 2, r, horse.baseColor, horse.stripeColor)
-  }, [horse.pattern, horse.baseColor, horse.stripeColor])
-  return <canvas ref={ref} width={28} height={28} className="rounded-full shrink-0" />
+function HorseDot({ horse }: { horse: Horse }) {
+  return (
+    <div
+      className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
+      style={{ background: horse.color, color: horse.textColor }}
+    >
+      {horse.number}
+    </div>
+  )
 }
 
 export function HorsePanel() {
@@ -54,13 +50,10 @@ export function HorsePanel() {
               state.selectedHorseId === h.id ? 'bg-border/60' : ''
             }`}
           >
-            <MiniPreview horse={h} />
+            <HorseDot horse={h} />
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium truncate">
-                #{h.number} {h.name || <span className="text-zinc-500 italic">unnamed</span>}
-              </div>
-              <div className="text-xs text-zinc-500 truncate">
-                {h.jockey || '—'} · {h.stable || '—'}
+                {h.name || <span className="text-zinc-500 italic">unnamed</span>}
               </div>
             </div>
             <div className="flex gap-1 shrink-0">

@@ -113,8 +113,7 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'SET_PAN':
       return { ...state, panX: action.x, panY: action.y }
     case 'SET_ACTIVE_TOOL':
-      // Switching to pen preserves editing state; any other tool exits edit mode
-      return { ...state, activeTool: action.tool, editingShapeId: action.tool === 'pen' ? state.editingShapeId : null }
+      return { ...state, activeTool: action.tool, editingShapeId: (action.tool === 'pen' || action.tool === 'ruler') ? state.editingShapeId : null }
     case 'SET_ACTIVE_PANEL':
       return {
         ...state,
@@ -200,16 +199,6 @@ export function reducer(state: AppState, action: Action): AppState {
           return { ...h, keyframes: h.keyframes.filter((_, i) => i !== action.index) }
         }),
       }
-    case 'SET_HORSE_PATTERN':
-      return {
-        ...state,
-        horses: state.horses.map((h) =>
-          h.id === action.id
-            ? { ...h, pattern: action.pattern, baseColor: action.baseColor, stripeColor: action.stripeColor }
-            : h,
-        ),
-      }
-
     // ---------- track shapes ----------
     case 'ADD_SHAPE':
       return { ...state, trackShapes: [...state.trackShapes, action.shape] }
@@ -271,7 +260,22 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'SNAPSHOT':
       return state
     case 'RESTORE_STATE':
-      return action.payload
+      return {
+        ...action.payload,
+        // preserve current view/interaction state
+        activeTool: state.activeTool,
+        activePanel: state.activePanel,
+        zoom: state.zoom,
+        panX: state.panX,
+        panY: state.panY,
+        selectedShapeId: state.selectedShapeId,
+        selectedHorseId: state.selectedHorseId,
+        selectedRefImageId: state.selectedRefImageId,
+        editingShapeId: null,
+        playbackState: state.playbackState,
+        currentTime: state.currentTime,
+        playbackSpeed: state.playbackSpeed,
+      }
 
     default:
       return state

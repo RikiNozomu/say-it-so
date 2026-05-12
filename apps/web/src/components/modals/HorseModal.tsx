@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { HexColorPicker } from 'react-colorful'
-import type { Horse, StripePattern } from '@say-it-so/core'
-import { PATTERNS, getPatternDef } from '../canvas/horsePatterns'
+import type { Horse } from '@say-it-so/core'
 import { useApp } from '../../context/AppContext'
 
 interface Props {
@@ -9,49 +8,29 @@ interface Props {
   onClose: () => void
 }
 
+const BG_COLORS = [
+  '#e94560', '#3b82f6', '#22c55e', '#f59e0b',
+  '#a855f7', '#ec4899', '#14b8a6', '#f97316',
+]
+
+const TEXT_COLORS = ['#ffffff', '#000000', '#fef08a', '#bfdbfe', '#bbf7d0']
+
 const EMPTY: Omit<Horse, 'id' | 'keyframes'> = {
   number: 1,
   name: '',
-  jockey: '',
-  stable: '',
-  breeder: '',
-  baseColor: '#e94560',
-  stripeColor: '#ffffff',
-  pattern: 'solid',
-}
-
-function PatternPreview({ pattern, base, stripe, size = 36 }: {
-  pattern: StripePattern; base: string; stripe: string; size?: number
-}) {
-  const ref = useRef<HTMLCanvasElement>(null)
-  useEffect(() => {
-    const canvas = ref.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')!
-    const r = size / 2 - 2
-    ctx.clearRect(0, 0, size, size)
-    getPatternDef(pattern).draw(ctx, size / 2, size / 2, r, base, stripe)
-    // circle border
-    ctx.strokeStyle = 'rgba(255,255,255,0.3)'
-    ctx.lineWidth = 1
-    ctx.beginPath()
-    ctx.arc(size / 2, size / 2, r, 0, Math.PI * 2)
-    ctx.stroke()
-  }, [pattern, base, stripe, size])
-  return <canvas ref={ref} width={size} height={size} />
+  color: '#e94560',
+  textColor: '#ffffff',
 }
 
 export function HorseModal({ horse, onClose }: Props) {
   const { state, dispatch } = useApp()
   const isEdit = !!horse
   const [form, setForm] = useState<Omit<Horse, 'id' | 'keyframes'>>(
-    horse ? {
-      number: horse.number, name: horse.name, jockey: horse.jockey,
-      stable: horse.stable, breeder: horse.breeder,
-      baseColor: horse.baseColor, stripeColor: horse.stripeColor, pattern: horse.pattern,
-    } : { ...EMPTY, number: state.horses.length + 1 },
+    horse
+      ? { number: horse.number, name: horse.name, color: horse.color, textColor: horse.textColor }
+      : { ...EMPTY, number: state.horses.length + 1 },
   )
-  const [colorTarget, setColorTarget] = useState<'base' | 'stripe' | null>(null)
+  const [customTarget, setCustomTarget] = useState<'color' | 'textColor' | null>(null)
 
   function set<K extends keyof typeof form>(k: K, v: typeof form[K]) {
     setForm((f) => ({ ...f, [k]: v }))
@@ -73,82 +52,97 @@ export function HorseModal({ horse, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
-        className="bg-panel border border-border rounded-xl w-[560px] max-h-[90vh] overflow-y-auto p-6 shadow-2xl"
+        className="bg-panel border border-border rounded-xl w-80 p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-lg font-bold mb-4">{isEdit ? 'Edit Horse' : 'Add Horse'}</h2>
 
-        {/* Basic info */}
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          {(
-            [
-              ['number', 'Number', 'number'],
-              ['name', 'Name', 'text'],
-              ['jockey', 'Jockey', 'text'],
-              ['stable', 'Stable', 'text'],
-              ['breeder', 'Breeder', 'text'],
-            ] as [keyof typeof form, string, string][]
-          ).map(([key, label, type]) => (
-            <label key={key} className="flex flex-col gap-1">
-              <span className="text-xs text-zinc-400">{label}</span>
-              <input
-                type={type}
-                value={String(form[key])}
-                onChange={(e) => set(key, type === 'number' ? Number(e.target.value) as never : e.target.value as never)}
-                min={type === 'number' ? 1 : undefined}
-                max={type === 'number' ? 24 : undefined}
-                className="bg-surface border border-border rounded px-2 py-1.5 text-sm focus:outline-none focus:border-accent"
-              />
-            </label>
-          ))}
-        </div>
+        <div className="flex flex-col gap-3 mb-4">
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-zinc-400">Number</span>
+            <input
+              type="number"
+              value={form.number}
+              onChange={(e) => set('number', Number(e.target.value))}
+              min={1} max={24}
+              className="bg-surface border border-border rounded px-2 py-1.5 text-sm focus:outline-none focus:border-accent"
+            />
+          </label>
 
-        {/* Colours */}
-        <div className="flex gap-4 mb-4">
-          {(['base', 'stripe'] as const).map((target) => (
-            <div key={target} className="flex flex-col gap-1">
-              <span className="text-xs text-zinc-400 capitalize">{target} Colour</span>
-              <button
-                className="w-10 h-10 rounded border-2 border-border"
-                style={{ background: target === 'base' ? form.baseColor : form.stripeColor }}
-                onClick={() => setColorTarget(colorTarget === target ? null : target)}
-              />
-            </div>
-          ))}
-          {colorTarget && (
-            <div className="ml-2">
-              <HexColorPicker
-                color={colorTarget === 'base' ? form.baseColor : form.stripeColor}
-                onChange={(c) => set(colorTarget === 'base' ? 'baseColor' : 'stripeColor', c)}
-              />
-            </div>
-          )}
-        </div>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-zinc-400">Name</span>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => set('name', e.target.value)}
+              className="bg-surface border border-border rounded px-2 py-1.5 text-sm focus:outline-none focus:border-accent"
+            />
+          </label>
 
-        {/* Pattern picker */}
-        <div className="mb-4">
-          <span className="text-xs text-zinc-400 block mb-2">Silhouette Pattern</span>
-          <div className="grid grid-cols-8 gap-1.5 max-h-44 overflow-y-auto pr-1">
-            {PATTERNS.map((p) => (
-              <button
-                key={p.id}
-                title={p.label}
-                onClick={() => set('pattern', p.id)}
-                className={`rounded p-0.5 border-2 transition-colors ${form.pattern === p.id ? 'border-accent' : 'border-transparent hover:border-zinc-500'}`}
-              >
-                <PatternPreview pattern={p.id} base={form.baseColor} stripe={form.stripeColor} />
-              </button>
-            ))}
+          {/* Circle colour */}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-zinc-400">Circle Colour</span>
+            <div className="flex gap-1.5 flex-wrap mb-1">
+              {BG_COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => set('color', c)}
+                  className={`w-7 h-7 rounded-full border-2 transition-colors ${form.color === c ? 'border-white' : 'border-transparent'}`}
+                  style={{ background: c }}
+                />
+              ))}
+            </div>
+            <button
+              onClick={() => setCustomTarget(customTarget === 'color' ? null : 'color')}
+              className="flex items-center gap-2 text-xs text-zinc-400 hover:text-white"
+            >
+              <span className="w-5 h-5 rounded-full border border-border" style={{ background: form.color }} />
+              Custom…
+            </button>
+            {customTarget === 'color' && (
+              <div className="mt-2">
+                <HexColorPicker color={form.color} onChange={(c) => set('color', c)} />
+              </div>
+            )}
+          </div>
+
+          {/* Text colour */}
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-zinc-400">Text Colour</span>
+            <div className="flex gap-1.5 flex-wrap mb-1">
+              {TEXT_COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => set('textColor', c)}
+                  className={`w-7 h-7 rounded-full border-2 transition-colors ${form.textColor === c ? 'border-accent' : 'border-border'}`}
+                  style={{ background: c }}
+                />
+              ))}
+            </div>
+            <button
+              onClick={() => setCustomTarget(customTarget === 'textColor' ? null : 'textColor')}
+              className="flex items-center gap-2 text-xs text-zinc-400 hover:text-white"
+            >
+              <span className="w-5 h-5 rounded-full border border-border" style={{ background: form.textColor }} />
+              Custom…
+            </button>
+            {customTarget === 'textColor' && (
+              <div className="mt-2">
+                <HexColorPicker color={form.textColor} onChange={(c) => set('textColor', c)} />
+              </div>
+            )}
           </div>
         </div>
 
         {/* Preview */}
         <div className="flex items-center gap-3 mb-5">
-          <PatternPreview pattern={form.pattern} base={form.baseColor} stripe={form.stripeColor} size={52} />
-          <div>
-            <div className="font-semibold">{form.name || '(unnamed)'}</div>
-            <div className="text-xs text-zinc-400">#{form.number} · {form.jockey || '—'}</div>
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
+            style={{ background: form.color, color: form.textColor }}
+          >
+            {form.number}
           </div>
+          <div className="font-semibold">{form.name || '(unnamed)'}</div>
         </div>
 
         <div className="flex gap-2 justify-end">

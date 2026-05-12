@@ -1,10 +1,11 @@
 import { useRef, useEffect } from 'react'
-import { Layer, Line, Rect, Ellipse, Path, Group, Transformer, Image as KonvaImage } from 'react-konva'
+import { Layer, Line, Rect, Ellipse, Path, Group, Transformer, Image as KonvaImage, Circle, Text } from 'react-konva'
 import useImage from 'use-image'
 import type Konva from 'konva'
 import type { TrackShape, RefImage } from '@say-it-so/core'
 import { useApp } from '../../context/AppContext'
 import { anchorsToPath } from '../../utils/pen'
+import { penPathLengthPx, samplePathAtRatio, formatRulerLength, intervalToPx } from '../../utils/ruler'
 
 function withAlpha(hex: string, alpha: number): string {
   if (!hex || hex === 'transparent') return 'transparent'
@@ -18,7 +19,7 @@ function withAlpha(hex: string, alpha: number): string {
 // ── Shape item ──────────────────────────────────────────────────────────────
 
 function ShapeItem({ shape, selected, onDblClick }: { shape: TrackShape; selected: boolean; onDblClick?: () => void }) {
-  const { dispatch, state } = useApp()
+  const { dispatch, state, penDrawing } = useApp()
   const groupRef = useRef<Konva.Group>(null)
   const trRef = useRef<Konva.Transformer>(null)
   const shiftRef = useRef(false)
@@ -53,7 +54,7 @@ function ShapeItem({ shape, selected, onDblClick }: { shape: TrackShape; selecte
     } else if (shape.type === 'ellipse') {
       const [cx, cy, rx, ry] = shape.points
       dispatch({ type: 'UPDATE_SHAPE', id: shape.id, patch: { points: [cx * sx + dx, cy * sy + dy, rx * sx, ry * sy] } })
-    } else if (shape.type === 'pen' && shape.penAnchors) {
+    } else if ((shape.type === 'pen' || shape.type === 'ruler') && shape.penAnchors) {
       const newAnchors = shape.penAnchors.map((a) => ({
         x: a.x * sx + dx, y: a.y * sy + dy,
         cpIn: { x: a.cpIn.x * sx + dx, y: a.cpIn.y * sy + dy },
@@ -100,8 +101,8 @@ function ShapeItem({ shape, selected, onDblClick }: { shape: TrackShape; selecte
         draggable={interactive && shape.locked !== true && state.activePanel === 'track'}
         listening={interactive}
         opacity={shape.opacity ?? 1}
-        onClick={() => { if (state.activePanel === 'track') dispatch({ type: 'SELECT_SHAPE', id: shape.id }) }}
-        onDblClick={() => { if (state.activePanel === 'track') onDblClick?.() }}
+        onClick={() => { if (state.activePanel === 'track' && !penDrawing) dispatch({ type: 'SELECT_SHAPE', id: shape.id }) }}
+        onDblClick={() => { if (state.activePanel === 'track' && !penDrawing) onDblClick?.() }}
         onDragEnd={bakeTransform}
         onTransformEnd={bakeTransform}
         shadowBlur={selected ? 8 : 0}
@@ -127,10 +128,165 @@ function ShapeItem({ shape, selected, onDblClick }: { shape: TrackShape; selecte
   )
 }
 
+// ── Ruler item ──────────────────────────────────────────────────────────────
+
+function RulerItem({ shape, selected, onDblClick }: { shape: TrackShape; selected: boolean; onDblClick?: () => void }) {
+  const { dispatch, state, penDrawing } = useApp()
+  const groupRef = useRef<Konva.Group>(null)
+  const trRef = useRef<Konva.Transformer>(null)
+  const shiftRef = useRef(false)
+
+  useEffect(() => {
+    if (!selected) return
+    const dn = (e: KeyboardEvent) => { if (e.key === 'Shift') shiftRef.current = true }
+    const up = (e: KeyboardEvent) => { if (e.key === 'Shift') shiftRef.current = false }
+    window.addEventListener('keydown', dn)
+    window.addEventListener('keyup', up)
+    return () => { window.removeEventListener('keydown', dn); window.removeEventListener('keyup', up) }
+  }, [selected])
+
+  useEffect(() => {
+    if (!trRef.current) return
+    if (selected && groupRef.current) {
+      trRef.current.nodes([groupRef.current])
+    } else {
+      trRef.current.nodes([])
+    }
+    trRef.current.getLayer()?.batchDraw()
+  }, [selected, shape])
+
+  function bakeTransform() {
+    const node = groupRef.current!
+    const dx = node.x(), dy = node.y()
+    const sx = node.scaleX(), sy = node.scaleY()
+    node.x(0); node.y(0); node.scaleX(1); node.scaleY(1); node.rotation(0)
+    if (shape.penAnchors) {
+      const newAnchors = shape.penAnchors.map((a) => ({
+        x: a.x * sx + dx, y: a.y * sy + dy,
+        cpIn:  { x: a.cpIn.x  * sx + dx, y: a.cpIn.y  * sy + dy },
+        cpOut: { x: a.cpOut.x * sx + dx, y: a.cpOut.y * sy + dy },
+      }))
+      dispatch({ type: 'UPDATE_SHAPE', id: shape.id, patch: { penAnchors: newAnchors } })
+    }
+  }
+
+  if (shape.visible === false || !shape.penAnchors || shape.penAnchors.length < 1) return null
+
+  const anchors = shape.penAnchors
+  const interactive = !state.editingShapeId
+  const strokeColor = withAlpha(shape.stroke, shape.strokeAlpha ?? 1)
+
+  const lengthPx = penPathLengthPx(anchors, false)
+  const unit = shape.rulerUnit ?? 'm'
+  const startLabel = formatRulerLength(0, unit, state.trackScale)
+  const endLabel   = formatRulerLength(lengthPx, unit, state.trackScale)
+
+  const fontSize = shape.rulerFontSize ?? 12
+  const labelH = fontSize + 8
+  const startLabelW = startLabel.length * 7 + 14
+  const endLabelW   = endLabel.length   * 7 + 14
+  const labelTextColor = withAlpha(shape.rulerLabelColor ?? '#ffffff', shape.rulerLabelColorOpacity ?? 1)
+  const labelBgColor   = withAlpha(shape.rulerLabelBg    ?? '#000000', shape.rulerLabelBgOpacity    ?? 0.75)
+
+  // Sequence markers
+  const seqInterval = shape.rulerSeqInterval ?? 0
+  const seqColor    = withAlpha(shape.rulerSeqColor ?? '#ffdd00', shape.rulerSeqColorOpacity ?? 1)
+  const seqMarkers: { x: number; y: number; label: string }[] = []
+  if (seqInterval > 0 && anchors.length >= 2) {
+    const intervalPx = intervalToPx(seqInterval, unit, state.trackScale)
+    if (intervalPx > 0) {
+      let d = intervalPx
+      while (d < lengthPx - intervalPx * 0.1) {
+        const pt = samplePathAtRatio(anchors, d / lengthPx, false)
+        seqMarkers.push({ x: pt.x, y: pt.y, label: formatRulerLength(d, unit, state.trackScale) })
+        d += intervalPx
+      }
+    }
+  }
+
+  return (
+    <>
+      <Group
+        ref={groupRef}
+        draggable={interactive && shape.locked !== true && state.activePanel === 'track'}
+        listening={interactive}
+        opacity={shape.opacity ?? 1}
+        onClick={() => { if (state.activePanel === 'track' && !penDrawing) dispatch({ type: 'SELECT_SHAPE', id: shape.id }) }}
+        onDblClick={() => { if (state.activePanel === 'track' && !penDrawing) onDblClick?.() }}
+        onDragEnd={bakeTransform}
+        onTransformEnd={bakeTransform}
+        shadowBlur={selected ? 8 : 0}
+        shadowColor="#e94560"
+      >
+        {/* Dashed path */}
+        {anchors.length >= 2 && (
+          <Path
+            data={anchorsToPath(anchors, false)}
+            stroke={strokeColor}
+            strokeWidth={shape.strokeWidth}
+            dash={[8, 4]}
+            fill="transparent"
+            hitStrokeWidth={12}
+          />
+        )}
+
+        {/* Endpoint dots */}
+        <Circle x={anchors[0].x} y={anchors[0].y} radius={shape.strokeWidth / 2 + 2} fill={strokeColor} listening={false} />
+        {anchors.length >= 2 && (
+          <Circle x={anchors[anchors.length - 1].x} y={anchors[anchors.length - 1].y} radius={shape.strokeWidth / 2 + 2} fill={strokeColor} listening={false} />
+        )}
+
+        {/* Sequence markers */}
+        {seqMarkers.map((m, i) => {
+          const sw = m.label.length * 6 + 10
+          const sh = 16
+          return (
+            <Group key={`seq-${i}`} listening={false}>
+              <Circle x={m.x} y={m.y} radius={4} fill={seqColor} />
+              <Group x={m.x - sw / 2} y={m.y + 7}>
+                <Rect width={sw} height={sh} fill={labelBgColor} cornerRadius={2} />
+                <Text text={m.label} width={sw} height={sh} fill={seqColor} fontSize={Math.max(8, fontSize - 2)} fontStyle="bold" align="center" verticalAlign="middle" />
+              </Group>
+            </Group>
+          )
+        })}
+
+        {/* Start label (0) */}
+        <Group x={anchors[0].x - startLabelW / 2} y={anchors[0].y - labelH - 6} listening={false}>
+          <Rect width={startLabelW} height={labelH} fill={labelBgColor} cornerRadius={3} />
+          <Text text={startLabel} width={startLabelW} height={labelH} fill={labelTextColor} fontSize={fontSize} fontStyle="bold" align="center" verticalAlign="middle" />
+        </Group>
+
+        {/* End label (total distance) */}
+        {anchors.length >= 2 && (
+          <Group x={anchors[anchors.length - 1].x - endLabelW / 2} y={anchors[anchors.length - 1].y - labelH - 6} listening={false}>
+            <Rect width={endLabelW} height={labelH} fill={labelBgColor} cornerRadius={3} />
+            <Text text={endLabel} width={endLabelW} height={labelH} fill={labelTextColor} fontSize={fontSize} fontStyle="bold" align="center" verticalAlign="middle" />
+          </Group>
+        )}
+      </Group>
+      <Transformer ref={trRef} rotateEnabled keepRatio={false}
+        boundBoxFunc={(oldBox, newBox) => {
+          const nb = { ...newBox, width: Math.max(4, newBox.width), height: Math.max(4, newBox.height) }
+          if (shiftRef.current && oldBox.width !== 0 && oldBox.height !== 0) {
+            const ratio = Math.abs(oldBox.width / oldBox.height)
+            if (Math.abs(nb.width / oldBox.width) >= Math.abs(nb.height / oldBox.height)) {
+              nb.height = nb.width / ratio
+            } else {
+              nb.width = nb.height * ratio
+            }
+          }
+          return nb
+        }}
+      />
+    </>
+  )
+}
+
 // ── Image item ──────────────────────────────────────────────────────────────
 
 function ImageItem({ img, selected }: { img: RefImage; selected: boolean }) {
-  const { dispatch, state } = useApp()
+  const { dispatch, state, penDrawing } = useApp()
   const [image] = useImage(img.dataUrl)
   const nodeRef = useRef<Konva.Image>(null)
   const trRef = useRef<Konva.Transformer>(null)
@@ -177,7 +333,7 @@ function ImageItem({ img, selected }: { img: RefImage; selected: boolean }) {
         rotation={img.rotation ?? 0}
         draggable={!img.locked && state.activePanel === 'track' && !state.editingShapeId}
         listening={!state.editingShapeId}
-        onClick={() => { if (state.activePanel === 'track' && !state.editingShapeId) dispatch({ type: 'SELECT_REF_IMAGE', id: img.id }) }}
+        onClick={() => { if (state.activePanel === 'track' && !state.editingShapeId && !penDrawing) dispatch({ type: 'SELECT_REF_IMAGE', id: img.id }) }}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
       />
@@ -203,6 +359,15 @@ export function UnifiedLayer({ onDblClickShape }: { onDblClickShape?: (id: strin
       {items.map((item) => {
         if (item.kind === 'shape') {
           const shape = state.trackShapes.find((s) => s.id === item.id)!
+          if (shape.type === 'ruler') {
+            return (
+              <RulerItem
+                key={item.id} shape={shape}
+                selected={state.selectedShapeId === item.id}
+                onDblClick={() => onDblClickShape?.(item.id)}
+              />
+            )
+          }
           return (
             <ShapeItem
               key={item.id} shape={shape}

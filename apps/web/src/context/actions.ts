@@ -1,11 +1,11 @@
 import type {
   Horse, TrackShape, RefImage, UnitSystem,
-  StripePattern, EasingType, CubicBezierParams, ProjectFile,
+  EasingType, CubicBezierParams, ProjectFile,
 } from '@say-it-so/core'
 
 export type ActiveTool =
   | 'select' | 'pen' | 'rect' | 'ellipse' | 'polygon'
-  | 'measure' | 'image'
+  | 'measure' | 'image' | 'ruler'
 
 export type ActivePanel = 'horses' | 'track'
 
@@ -58,9 +58,6 @@ export type Action =
   | { type: 'SET_CURRENT_TIME'; time: number }
   | { type: 'SET_PLAYBACK_STATE'; state: PlaybackState }
   | { type: 'SET_PLAYBACK_SPEED'; speed: number }
-
-  // horse pattern helper
-  | { type: 'SET_HORSE_PATTERN'; id: string; pattern: StripePattern; baseColor: string; stripeColor: string }
 
   // shape editing
   | { type: 'SET_EDITING_SHAPE'; id: string | null }

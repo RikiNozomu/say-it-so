@@ -1,9 +1,7 @@
-import { Layer, Group, Circle, Text, Shape } from 'react-konva'
+import { Layer, Group, Circle, Text } from 'react-konva'
 import type { Horse } from '@say-it-so/core'
 import { interpolatePosition } from '@say-it-so/core'
 import { useApp } from '../../context/AppContext'
-import { getPatternDef } from './horsePatterns'
-import type Konva from 'konva'
 
 const RADIUS = 18
 const BORDER = 2
@@ -47,22 +45,12 @@ function HorseMarker({ horse, x, y, selected }: HorseMarkerProps) {
         fill="transparent"
       />
 
-      {/* Pattern drawn via sceneFunc */}
-      <Shape
-        sceneFunc={(ctx: Konva.Context) => {
-          const def = getPatternDef(horse.pattern)
-          def.draw(ctx._context as unknown as CanvasRenderingContext2D, 0, 0, r, horse.baseColor, horse.stripeColor)
-          // white border circle
-          ctx._context.strokeStyle = 'rgba(255,255,255,0.4)'
-          ctx._context.lineWidth = 1
-          ctx._context.beginPath()
-          ctx._context.arc(0, 0, r, 0, Math.PI * 2)
-          ctx._context.stroke()
-        }}
-        width={r * 2}
-        height={r * 2}
-        offsetX={r}
-        offsetY={r}
+      {/* Solid colour circle */}
+      <Circle
+        radius={r}
+        fill={horse.color}
+        stroke="rgba(255,255,255,0.4)"
+        strokeWidth={1}
         listening={false}
       />
 
@@ -71,7 +59,7 @@ function HorseMarker({ horse, x, y, selected }: HorseMarkerProps) {
         text={String(horse.number)}
         fontSize={r * 0.9}
         fontStyle="bold"
-        fill="#fff"
+        fill={horse.textColor}
         shadowColor="#000"
         shadowBlur={3}
         align="center"
@@ -88,6 +76,8 @@ function HorseMarker({ horse, x, y, selected }: HorseMarkerProps) {
 
 export function HorseLayer() {
   const { state } = useApp()
+
+  if (state.activePanel === 'track') return null
 
   return (
     <Layer>
