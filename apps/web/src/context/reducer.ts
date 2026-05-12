@@ -32,6 +32,7 @@ export interface AppState {
   // playback
   currentTime: number
   playbackState: PlaybackState
+  playbackSpeed: number
 }
 
 export const DEFAULT_STATE: AppState = {
@@ -60,6 +61,7 @@ export const DEFAULT_STATE: AppState = {
 
   currentTime: 0,
   playbackState: 'idle',
+  playbackSpeed: 1,
 }
 
 function reorder<T extends { id: string; order: number }>(
@@ -262,6 +264,8 @@ export function reducer(state: AppState, action: Action): AppState {
       return { ...state, currentTime: Math.max(0, Math.min(state.duration, action.time)) }
     case 'SET_PLAYBACK_STATE':
       return { ...state, playbackState: action.state }
+    case 'SET_PLAYBACK_SPEED':
+      return { ...state, playbackSpeed: action.speed }
 
     // ---------- history ----------
     case 'SNAPSHOT':

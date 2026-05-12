@@ -11,8 +11,10 @@ export function usePlayback() {
   // without depending on the closure captured at effect-start time.
   const currentTimeRef = useRef(state.currentTime)
   const durationRef = useRef(state.duration)
+  const speedRef = useRef(state.playbackSpeed)
   useEffect(() => { currentTimeRef.current = state.currentTime }, [state.currentTime])
   useEffect(() => { durationRef.current = state.duration }, [state.duration])
+  useEffect(() => { speedRef.current = state.playbackSpeed }, [state.playbackSpeed])
 
   useEffect(() => {
     if (state.playbackState !== 'playing') {
@@ -34,7 +36,7 @@ export function usePlayback() {
       const dt = (now - lastTimeRef.current) / 1000
       lastTimeRef.current = now
 
-      const next = currentTimeRef.current + dt
+      const next = currentTimeRef.current + dt * speedRef.current
 
       if (next >= durationRef.current) {
         dispatch({ type: 'SET_CURRENT_TIME', time: durationRef.current })

@@ -33,6 +33,31 @@ export function PlaybackControls() {
         <CtrlBtn title="Jump to end" onClick={pb.fastForward}><MdSkipNext size={18} /></CtrlBtn>
       </div>
 
+      {/* Speed controls: preset buttons + fine slider */}
+      <div className={`flex items-center gap-1.5 shrink-0 ${disabled ? 'opacity-30 pointer-events-none' : ''}`}>
+        {[0.5, 1, 2].map((s) => (
+          <button
+            key={s}
+            onClick={() => dispatch({ type: 'SET_PLAYBACK_SPEED', speed: s })}
+            className={`px-2 h-7 rounded text-xs transition-colors ${
+              state.playbackSpeed === s
+                ? 'bg-accent text-white'
+                : 'text-zinc-400 hover:bg-border hover:text-white'
+            }`}
+          >
+            {s}×
+          </button>
+        ))}
+        <input
+          type="range" min={0.25} max={4} step={0.25}
+          value={state.playbackSpeed}
+          onChange={(e) => dispatch({ type: 'SET_PLAYBACK_SPEED', speed: Number(e.target.value) })}
+          className="w-20"
+          title={`${state.playbackSpeed}×`}
+        />
+        <span className="text-xs text-zinc-500 w-6">{state.playbackSpeed}×</span>
+      </div>
+
       {/* Time display */}
       <div className="font-mono text-sm text-zinc-300 shrink-0 w-20">
         {formatTime(state.currentTime)}
@@ -48,7 +73,7 @@ export function PlaybackControls() {
         }}
       >
         <div
-          className="absolute left-0 top-0 h-full bg-accent rounded transition-all"
+          className="absolute left-0 top-0 h-full bg-accent rounded"
           style={{ width: `${pct}%` }}
         />
       </div>

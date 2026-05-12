@@ -57,6 +57,7 @@ export type Action =
   // timeline / playback
   | { type: 'SET_CURRENT_TIME'; time: number }
   | { type: 'SET_PLAYBACK_STATE'; state: PlaybackState }
+  | { type: 'SET_PLAYBACK_SPEED'; speed: number }
 
   // horse pattern helper
   | { type: 'SET_HORSE_PATTERN'; id: string; pattern: StripePattern; baseColor: string; stripeColor: string }
