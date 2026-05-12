@@ -1,0 +1,31 @@
+/* Make the library match the app's dark-blue theme */
+.timeline-editor {
+  background-color: #16213e !important;
+}
+.timeline-editor-edit-row {
+  background-image:
+    linear-gradient(#16213e, #16213e),
+    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 0) !important;
+  border-bottom: 1px solid rgba(15, 52, 96, 0.5);
+}
+.timeline-editor-time-area {
+  background-color: #1a1a2e;
+}
+.timeline-editor-time-unit {
+  border-right-color: rgba(255,255,255,0.12) !important;
+}
+.timeline-editor-time-unit-scale {
+  color: rgba(255,255,255,0.4) !important;
+  font-size: 9px !important;
+}
+.timeline-editor-cursor {
+  border-left-color: #e94560 !important;
+  border-right-color: #e94560 !important;
+}
+.timeline-editor-cursor-top {
+  background: #e94560 !important;
+}
+.timeline-editor-action {
+  background-color: transparent !important;
+  overflow: visible !important;
+}

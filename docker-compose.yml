@@ -1,0 +1,30 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+
+  # Dev server (hot-reload) — run with: docker compose --profile dev up
+  web-dev:
+    profiles: [dev]
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/web/node_modules
+      - /app/packages/core/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+    command: >
+      sh -c "corepack enable &&
+             corepack prepare pnpm@9.0.0 --activate &&
+             pnpm install &&
+             pnpm --filter core build &&
+             pnpm --filter web dev --host"
+    restart: unless-stopped
