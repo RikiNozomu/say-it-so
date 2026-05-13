@@ -363,9 +363,9 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
     ? { fillPatternImage: textureImage, fillPatternRepeat: 'repeat' as const }
     : { fill: SURFACE_FILL[surface] }
 
-  // Horse-length tick marks on both borders
+  // Horse-length tick marks: one full-width line per interval + label at the outer edge
   const horseInterval = shape.trackHorseInterval ?? 0
-  const tickMarkers: { x: number; y: number; side: 'left' | 'right'; label: string }[] = []
+  const tickMarkers: { x1: number; y1: number; x2: number; y2: number; label: string }[] = []
   if (horseInterval > 0) {
     const intervalPx = trackWidthToPx(horseInterval, unit, state.trackScale)
     const totalLen = penPathLengthPx(anchors, false)
@@ -379,8 +379,11 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
         const nx = -s.ty, ny = s.tx
         const hw = interpolateWidth(ratio, widths, anchorCount) / 2 + avgBorderWidth
         const label = formatTrackWidth(d, unit, state.trackScale)
-        tickMarkers.push({ x: pt.x + nx * hw, y: pt.y + ny * hw, side: 'left', label })
-        tickMarkers.push({ x: pt.x - nx * hw, y: pt.y - ny * hw, side: 'right', label })
+        tickMarkers.push({
+          x1: pt.x + nx * hw, y1: pt.y + ny * hw,  // outer edge
+          x2: pt.x - nx * hw, y2: pt.y - ny * hw,  // inner edge
+          label,
+        })
         d += intervalPx
       }
     }
@@ -412,19 +415,21 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
           <Circle key={`fd-${i}`} x={d.x} y={d.y} radius={d.hw} {...surfaceFillProps} listening={false} />
         ))}
 
-        {/* Horse-length tick marks */}
-        {tickMarkers.map((m, i) => (
-          <Group key={`tick-${i}`} listening={false}>
-            <Circle x={m.x} y={m.y} radius={3} fill={borderColor} />
-            {m.side === 'left' && (
-              <Group x={m.x + 4} y={m.y - 8}>
-                <Rect width={m.label.length * 6 + 8} height={14} fill="rgba(0,0,0,0.65)" cornerRadius={2} />
-                <Text text={m.label} width={m.label.length * 6 + 8} height={14}
-                  fill={borderColor} fontSize={9} align="center" verticalAlign="middle" />
+        {/* Horse-length tick marks: red line across full track width + label at outer edge */}
+        {tickMarkers.map((m, i) => {
+          const labelW = m.label.length * 7 + 12
+          const labelH = 16
+          return (
+            <Group key={`tick-${i}`} listening={false}>
+              <Line points={[m.x1, m.y1, m.x2, m.y2]} stroke="#e94560" strokeWidth={2} />
+              <Group x={m.x2 - labelW / 2} y={m.y2 + 4}>
+                <Rect width={labelW} height={labelH} fill="rgba(0,0,0,0.72)" cornerRadius={2} />
+                <Text text={m.label} width={labelW} height={labelH}
+                  fill="#e94560" fontSize={10} fontStyle="bold" align="center" verticalAlign="middle" />
               </Group>
-            )}
-          </Group>
-        ))}
+            </Group>
+          )
+        })}
       </Group>
       <Transformer ref={trRef} rotateEnabled keepRatio={false}
         boundBoxFunc={(oldBox, newBox) => {
