@@ -245,8 +245,8 @@ function RulerItem({ shape, selected, onDblClick }: { shape: TrackShape; selecte
           const sh = seqFontSize + 4
           return (
             <Group key={`seq-${i}`} listening={false}>
-              <Circle x={m.x} y={m.y} radius={Math.max(3, fontSize * 0.3)} fill={seqColor} />
-              <Group x={m.x - sw / 2} y={m.y + fontSize * 0.4}>
+              <Circle x={m.x} y={m.y} radius={Math.max(3, seqFontSize * 0.3)} fill={seqColor} />
+              <Group x={m.x - sw / 2} y={m.y + seqFontSize * 0.4}>
                 <Rect width={sw} height={sh} fill={labelBgColor} cornerRadius={2} />
                 <Text text={m.label} width={sw} height={sh} fill={seqColor} fontSize={seqFontSize} fontStyle="bold" align="center" verticalAlign="middle" />
               </Group>
