@@ -228,15 +228,22 @@ export function TrackPanel() {
                           const anchors = editShape.penAnchors
                           let newAnc: typeof anc
                           if (isCorner) {
-                            const prev = anchors[idx - 1] ?? anc
-                            const next = anchors[idx + 1] ?? anc
-                            const dx = next.x - prev.x, dy = next.y - prev.y
+                            const hasPrev = idx > 0
+                            const hasNext = idx < anchors.length - 1
+                            const prev = hasPrev ? anchors[idx - 1] : anc
+                            const next = hasNext ? anchors[idx + 1] : anc
+                            // For endpoints: use one-sided direction (anc→next or prev→anc)
+                            const fromX = hasPrev ? prev.x : anc.x
+                            const fromY = hasPrev ? prev.y : anc.y
+                            const toX   = hasNext ? next.x : anc.x
+                            const toY   = hasNext ? next.y : anc.y
+                            const dx = toX - fromX, dy = toY - fromY
                             const len = Math.hypot(dx, dy)
                             if (len > 0) {
-                              const d = Math.min(
-                                Math.hypot(anc.x - prev.x, anc.y - prev.y),
-                                Math.hypot(next.x - anc.x, next.y - anc.y),
-                              ) * 0.4
+                              const refDist = hasPrev && hasNext
+                                ? Math.min(Math.hypot(anc.x - prev.x, anc.y - prev.y), Math.hypot(next.x - anc.x, next.y - anc.y))
+                                : Math.hypot(dx, dy)
+                              const d = refDist * 0.4
                               const ux = dx / len, uy = dy / len
                               newAnc = { ...anc, cpIn: { x: anc.x - ux * d, y: anc.y - uy * d }, cpOut: { x: anc.x + ux * d, y: anc.y + uy * d } }
                             } else {
