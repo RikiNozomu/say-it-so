@@ -370,21 +370,28 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
     const intervalPx = trackWidthToPx(horseInterval, unit, state.trackScale)
     const totalLen = penPathLengthPx(anchors, false)
     if (intervalPx > 0) {
-      let d = intervalPx
-      while (d < totalLen - intervalPx * 0.1) {
-        const ratio = d / totalLen
+      const addTick = (d: number) => {
+        const ratio = Math.max(0, Math.min(1, d / totalLen))
         const pt = samplePathAtRatio(anchors, ratio, false)
         const { tx, ty } = tangentAtRatio(samples, ratio)
         const nx = -ty, ny = tx
         const hw = interpolateWidth(ratio, widths, anchorCount) / 2 + avgBorderWidth
-        const label = formatTrackWidth(d, unit, state.trackScale)
         tickMarkers.push({
-          x1: pt.x + nx * hw, y1: pt.y + ny * hw,  // outer edge
-          x2: pt.x - nx * hw, y2: pt.y - ny * hw,  // inner edge
-          label,
+          x1: pt.x + nx * hw, y1: pt.y + ny * hw,
+          x2: pt.x - nx * hw, y2: pt.y - ny * hw,
+          label: formatTrackWidth(d, unit, state.trackScale),
         })
+      }
+      // Start
+      addTick(0)
+      // Interval ticks
+      let d = intervalPx
+      while (d < totalLen - intervalPx * 0.1) {
+        addTick(d)
         d += intervalPx
       }
+      // End
+      addTick(totalLen)
     }
   }
 
