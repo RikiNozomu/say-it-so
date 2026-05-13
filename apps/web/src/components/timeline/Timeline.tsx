@@ -5,7 +5,7 @@ import { useApp } from '../../context/AppContext'
 
 const LANE_H = 28
 const HEADER_H = 24
-const LABEL_W = 140
+const LABEL_W = 200
 
 interface ContextMenu {
   horseId: string
@@ -92,7 +92,7 @@ function TimeRuler({ duration, labelWidth }: { duration: number; labelWidth: num
           <div
             key={i}
             className="absolute bottom-0.5 text-zinc-500 text-[9px]"
-            style={{ left: `calc(${labelWidth}px + (100% - ${labelWidth}px) * ${t / duration} - 10px)` }}
+            style={{ left: `calc(${labelWidth}px + (100% - ${labelWidth}px) * ${t / duration})`, transform: 'translateX(-50%)' }}
           >
             {t.toFixed(0)}s
           </div>
@@ -127,7 +127,7 @@ function HorseLane({
         className={`absolute left-0 top-0 bottom-0 flex items-center border-r border-border z-10 text-xs cursor-pointer select-none transition-colors ${
           isSelected ? 'bg-accent/20' : 'bg-panel hover:bg-border/40'
         }`}
-        style={{ width: labelWidth }}
+        style={{ width: labelWidth, paddingRight: 8 }}
         onClick={() => dispatch({ type: 'SELECT_HORSE', id: horseId })}
       >
         <span className="flex-1 truncate px-2">{label}</span>
