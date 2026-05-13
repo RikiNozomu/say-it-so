@@ -12,6 +12,15 @@ function canvasPos(stage: Konva.Stage) {
   return { x: (pos.x - stage.x()) / sc, y: (pos.y - stage.y()) / sc }
 }
 
+function screenToCanvas(me: MouseEvent, stage: Konva.Stage) {
+  const rect = stage.container().getBoundingClientRect()
+  const sc = stage.scaleX()
+  return {
+    x: (me.clientX - rect.left - stage.x()) / sc,
+    y: (me.clientY - rect.top  - stage.y()) / sc,
+  }
+}
+
 function cpOut(kf: Keyframe) { return kf.cpOut ?? { x: kf.x, y: kf.y } }
 function cpIn(kf: Keyframe)  { return kf.cpIn  ?? { x: kf.x, y: kf.y } }
 
@@ -33,18 +42,19 @@ type HandleKind = 'cpOut' | 'cpIn' | 'anchor'
 interface DragState {
   kind: HandleKind
   horseId: string
-  kfIndex: number          // index in horse.keyframes (unsorted)
+  kfIndex: number
   origX: number; origY: number
   startMx: number; startMy: number
-  symmetric: boolean       // mirror opposite handle when dragging
+  symmetric: boolean
 }
 
 // ── component ─────────────────────────────────────────────────────────────────
 
 export function MotionPathLayer() {
   const { state, dispatch } = useApp()
-  const dragRef = useRef<DragState | null>(null)
-  const horseRef = useRef<typeof state.horses[0] | null>(null)
+  const dragRef   = useRef<DragState | null>(null)
+  const horseRef  = useRef<typeof state.horses[0] | null>(null)
+  const stageRef  = useRef<Konva.Stage | null>(null)
   const [activeKfIdx, setActiveKfIdx] = useState<number | null>(null)
 
   if (state.activePanel !== 'horses' || !state.showMotionPaths) return null
@@ -56,16 +66,86 @@ export function MotionPathLayer() {
   const selectedHorseId = selectedHorse.id
 
   const z = state.zoom
-  const hs = 5 / z   // anchor half-size
-  const cr = 4 / z   // handle circle radius
-  const SNAP = 12 / z
+  const hs = 5 / z
+  const cr = 4 / z
 
-  // Sort keyframes by time; keep original index for dispatch
   const sorted = [...selectedHorse.keyframes]
     .map((kf, i) => ({ kf, origIdx: i }))
     .sort((a, b) => a.kf.time - b.kf.time)
 
-  // ── mouse handlers ────────────────────────────────────────────────────────
+  // ── window-level drag handlers (attached on mousedown) ────────────────────
+
+  function attachDragListeners(stage: Konva.Stage) {
+    stageRef.current = stage
+
+    function onMove(me: MouseEvent) {
+      const d = dragRef.current
+      if (!d) return
+      const { x: mx, y: my } = screenToCanvas(me, stage)
+      const kf = horseRef.current?.keyframes[d.kfIndex]
+      if (!kf) return
+
+      if (d.kind === 'anchor') {
+        dispatch({ type: 'UPDATE_KEYFRAME_CP_LIVE', horseId: d.horseId, index: d.kfIndex,
+          cpOut: { x: mx, y: my },
+          cpIn:  { x: 2 * kf.x - mx, y: 2 * kf.y - my },
+        })
+      } else if (d.kind === 'cpOut') {
+        const cpInVal = d.symmetric ? { x: 2 * kf.x - mx, y: 2 * kf.y - my } : undefined
+        dispatch({ type: 'UPDATE_KEYFRAME_CP_LIVE', horseId: d.horseId, index: d.kfIndex, cpOut: { x: mx, y: my }, cpIn: cpInVal })
+      } else {
+        const cpOutVal = d.symmetric ? { x: 2 * kf.x - mx, y: 2 * kf.y - my } : undefined
+        dispatch({ type: 'UPDATE_KEYFRAME_CP_LIVE', horseId: d.horseId, index: d.kfIndex, cpIn: { x: mx, y: my }, cpOut: cpOutVal })
+      }
+    }
+
+    function onUp(me: MouseEvent) {
+      const d = dragRef.current
+      dragRef.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+
+      if (!d) return
+      const { x: mx, y: my } = screenToCanvas(me, stage)
+      const kf = horseRef.current?.keyframes[d.kfIndex]
+      if (!kf) return
+      const snap = 12 / stage.scaleX()
+
+      if (d.kind === 'anchor') {
+        if (Math.hypot(mx - d.startMx, my - d.startMy) < snap) {
+          // Tiny move = click: reset to corner
+          dispatch({ type: 'UPDATE_KEYFRAME_CP', horseId: d.horseId, index: d.kfIndex,
+            cpIn: { x: kf.x, y: kf.y }, cpOut: { x: kf.x, y: kf.y } })
+        } else {
+          dispatch({ type: 'UPDATE_KEYFRAME_CP', horseId: d.horseId, index: d.kfIndex,
+            cpOut: { x: mx, y: my },
+            cpIn:  { x: 2 * kf.x - mx, y: 2 * kf.y - my },
+          })
+        }
+        return
+      }
+
+      // Handle dragged back near anchor → reset
+      if (Math.hypot(mx - kf.x, my - kf.y) < snap) {
+        dispatch({ type: 'UPDATE_KEYFRAME_CP', horseId: d.horseId, index: d.kfIndex,
+          cpIn: { x: kf.x, y: kf.y }, cpOut: { x: kf.x, y: kf.y } })
+        return
+      }
+
+      if (d.kind === 'cpOut') {
+        const cpInVal = d.symmetric ? { x: 2 * kf.x - mx, y: 2 * kf.y - my } : undefined
+        dispatch({ type: 'UPDATE_KEYFRAME_CP', horseId: d.horseId, index: d.kfIndex, cpOut: { x: mx, y: my }, cpIn: cpInVal })
+      } else {
+        const cpOutVal = d.symmetric ? { x: 2 * kf.x - mx, y: 2 * kf.y - my } : undefined
+        dispatch({ type: 'UPDATE_KEYFRAME_CP', horseId: d.horseId, index: d.kfIndex, cpIn: { x: mx, y: my }, cpOut: cpOutVal })
+      }
+    }
+
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
+  // ── mousedown: hit detection only ────────────────────────────────────────
 
   function handleMouseDown(e: Konva.KonvaEventObject<MouseEvent>) {
     if (e.evt.button !== 0) return
@@ -78,92 +158,25 @@ export function MotionPathLayer() {
       const hasCpOut = kf.cpOut && (kf.cpOut.x !== kf.x || kf.cpOut.y !== kf.y)
       const hasCpIn  = kf.cpIn  && (kf.cpIn.x  !== kf.x || kf.cpIn.y  !== kf.y)
 
-      // cpOut handle
       if (hasCpOut && Math.hypot(mx - out.x, my - out.y) < cr * 2) {
         dispatch({ type: 'SNAPSHOT' })
         dragRef.current = { kind: 'cpOut', horseId: selectedHorseId, kfIndex: origIdx, origX: out.x, origY: out.y, startMx: mx, startMy: my, symmetric: !e.evt.altKey }
+        attachDragListeners(stage)
         return
       }
-      // cpIn handle
       if (hasCpIn && Math.hypot(mx - inn.x, my - inn.y) < cr * 2) {
         dispatch({ type: 'SNAPSHOT' })
         dragRef.current = { kind: 'cpIn', horseId: selectedHorseId, kfIndex: origIdx, origX: inn.x, origY: inn.y, startMx: mx, startMy: my, symmetric: !e.evt.altKey }
+        attachDragListeners(stage)
         return
       }
-      // anchor square — drag to pull out handles
       if (Math.abs(mx - kf.x) <= hs * 1.5 && Math.abs(my - kf.y) <= hs * 1.5) {
         dispatch({ type: 'SNAPSHOT' })
         setActiveKfIdx(origIdx)
         dragRef.current = { kind: 'anchor', horseId: selectedHorseId, kfIndex: origIdx, origX: kf.x, origY: kf.y, startMx: mx, startMy: my, symmetric: true }
+        attachDragListeners(stage)
         return
       }
-    }
-  }
-
-  function handleMouseMove(e: Konva.KonvaEventObject<MouseEvent>) {
-    const d = dragRef.current
-    if (!d) return
-    const stage = e.target.getStage()
-    if (!stage) return
-    const { x: mx, y: my } = canvasPos(stage)
-
-    const kf = horseRef.current?.keyframes[d.kfIndex]
-    if (!kf) return
-
-    if (d.kind === 'anchor') {
-      // Drag from anchor pulls out cpOut; cpIn mirrors it
-      dispatch({ type: 'UPDATE_KEYFRAME_CP_LIVE', horseId: d.horseId, index: d.kfIndex,
-        cpOut: { x: mx, y: my },
-        cpIn:  { x: 2 * kf.x - mx, y: 2 * kf.y - my },
-      })
-    } else if (d.kind === 'cpOut') {
-      const cpIn = d.symmetric ? { x: 2 * kf.x - mx, y: 2 * kf.y - my } : undefined
-      dispatch({ type: 'UPDATE_KEYFRAME_CP_LIVE', horseId: d.horseId, index: d.kfIndex, cpOut: { x: mx, y: my }, cpIn })
-    } else {
-      const cpOut = d.symmetric ? { x: 2 * kf.x - mx, y: 2 * kf.y - my } : undefined
-      dispatch({ type: 'UPDATE_KEYFRAME_CP_LIVE', horseId: d.horseId, index: d.kfIndex, cpIn: { x: mx, y: my }, cpOut })
-    }
-  }
-
-  function handleMouseUp(e: Konva.KonvaEventObject<MouseEvent>) {
-    const d = dragRef.current
-    dragRef.current = null
-    if (!d) return
-
-    const stage = e.target.getStage()
-    if (!stage) return
-    const { x: mx, y: my } = canvasPos(stage)
-
-    const kf = horseRef.current?.keyframes[d.kfIndex]
-    if (!kf) return
-
-    if (d.kind === 'anchor') {
-      // Small movement = treated as a click, reset handles to corner
-      if (Math.hypot(mx - d.startMx, my - d.startMy) < SNAP) {
-        dispatch({ type: 'UPDATE_KEYFRAME_CP', horseId: d.horseId, index: d.kfIndex,
-          cpIn: { x: kf.x, y: kf.y }, cpOut: { x: kf.x, y: kf.y } })
-      } else {
-        dispatch({ type: 'UPDATE_KEYFRAME_CP', horseId: d.horseId, index: d.kfIndex,
-          cpOut: { x: mx, y: my },
-          cpIn:  { x: 2 * kf.x - mx, y: 2 * kf.y - my },
-        })
-      }
-      return
-    }
-
-    // Handle dragged back near anchor → reset to corner point
-    if (Math.hypot(mx - kf.x, my - kf.y) < SNAP) {
-      dispatch({ type: 'UPDATE_KEYFRAME_CP', horseId: d.horseId, index: d.kfIndex,
-        cpIn: { x: kf.x, y: kf.y }, cpOut: { x: kf.x, y: kf.y } })
-      return
-    }
-
-    if (d.kind === 'cpOut') {
-      const cpIn = d.symmetric ? { x: 2 * kf.x - mx, y: 2 * kf.y - my } : undefined
-      dispatch({ type: 'UPDATE_KEYFRAME_CP', horseId: d.horseId, index: d.kfIndex, cpOut: { x: mx, y: my }, cpIn })
-    } else {
-      const cpOut = d.symmetric ? { x: 2 * kf.x - mx, y: 2 * kf.y - my } : undefined
-      dispatch({ type: 'UPDATE_KEYFRAME_CP', horseId: d.horseId, index: d.kfIndex, cpIn: { x: mx, y: my }, cpOut })
     }
   }
 
@@ -173,8 +186,8 @@ export function MotionPathLayer() {
   const pathD = bezierPathD(kfs)
 
   return (
-    <Layer onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
-      {/* Full-coverage rect so Layer receives all mouse events */}
+    <Layer onMouseDown={handleMouseDown}>
+      {/* Full-coverage rect so Layer receives mousedown for hit detection */}
       <Rect x={-100000} y={-100000} width={200000} height={200000} fill="transparent" listening={true} />
 
       {/* Dotted bezier path */}
@@ -199,7 +212,7 @@ export function MotionPathLayer() {
 
         return (
           <React.Fragment key={origIdx}>
-            {/* Handle guide lines — shown when handle exists OR anchor is active */}
+            {/* Handle guide lines */}
             {(hasCpOut || isActive) && (
               <Line points={[kf.x, kf.y, out.x, out.y]}
                 stroke="#e94560" strokeWidth={1 / z} opacity={0.5} listening={false} dash={[3/z, 2/z]} />
@@ -220,10 +233,10 @@ export function MotionPathLayer() {
                 fill="#ff6b8a" stroke="#fff" strokeWidth={0.5 / z} listening={false} />
             )}
 
-            {/* Keyframe anchor square — larger + white fill when active */}
+            {/* Keyframe anchor square */}
             <Rect
               x={kf.x - (isActive ? hs * 1.4 : hs)} y={kf.y - (isActive ? hs * 1.4 : hs)}
-              width={(isActive ? hs * 2.8 : hs * 2)} height={(isActive ? hs * 2.8 : hs * 2)}
+              width={isActive ? hs * 2.8 : hs * 2} height={isActive ? hs * 2.8 : hs * 2}
               fill={isActive ? '#fff' : '#e94560'} stroke={isActive ? '#e94560' : '#fff'} strokeWidth={1 / z}
               listening={false}
             />

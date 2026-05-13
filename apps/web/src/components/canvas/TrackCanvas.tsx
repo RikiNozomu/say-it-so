@@ -660,8 +660,8 @@ export function TrackCanvas() {
           dispatch({ type: 'SET_EDITING_SHAPE', id })
           dispatch({ type: 'SELECT_SHAPE', id })
         }} />
-        <HorseLayer />
         <MotionPathLayer />
+        <HorseLayer />
         <MeasurementLayer active={measureActive} />
 
         {/* Edit overlay — point handles for the selected shape */}
