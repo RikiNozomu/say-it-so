@@ -34,6 +34,9 @@ export interface AppState {
   currentTime: number
   playbackState: PlaybackState
   playbackSpeed: number
+
+  // motion paths
+  showMotionPaths: boolean
 }
 
 export const DEFAULT_STATE: AppState = {
@@ -64,6 +67,8 @@ export const DEFAULT_STATE: AppState = {
   currentTime: 0,
   playbackState: 'idle',
   playbackSpeed: 1,
+
+  showMotionPaths: false,
 }
 
 function reorder<T extends { id: string; order: number }>(
@@ -163,7 +168,7 @@ export function reducer(state: AppState, action: Action): AppState {
             ...h,
             keyframes: [
               ...h.keyframes,
-              { time: action.time, x: action.x, y: action.y, easing: 'linear' },
+              { time: action.time, x: action.x, y: action.y },
             ],
           }
         }),
@@ -179,7 +184,8 @@ export function reducer(state: AppState, action: Action): AppState {
           return { ...h, keyframes: kfs }
         }),
       }
-    case 'UPDATE_KEYFRAME_EASING':
+    case 'UPDATE_KEYFRAME_CP':
+    case 'UPDATE_KEYFRAME_CP_LIVE':
       return {
         ...state,
         horses: state.horses.map((h) => {
@@ -187,12 +193,14 @@ export function reducer(state: AppState, action: Action): AppState {
           const kfs = [...h.keyframes]
           kfs[action.index] = {
             ...kfs[action.index],
-            easing: action.easing,
-            cubicBezier: action.cubicBezier,
+            ...(action.cpIn  !== undefined && { cpIn:  action.cpIn  }),
+            ...(action.cpOut !== undefined && { cpOut: action.cpOut }),
           }
           return { ...h, keyframes: kfs }
         }),
       }
+    case 'TOGGLE_MOTION_PATHS':
+      return { ...state, showMotionPaths: !state.showMotionPaths }
     case 'REMOVE_KEYFRAME':
       return {
         ...state,

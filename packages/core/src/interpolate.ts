@@ -1,45 +1,32 @@
-import type { Keyframe, EasingType, CubicBezierParams } from './types'
-
-function cubicBezier(params: CubicBezierParams, t: number): number {
-  const { x1, y1, x2, y2 } = params
-  // Newton-Raphson approximation for CSS cubic-bezier
-  const cx = 3 * x1
-  const bx = 3 * (x2 - x1) - cx
-  const ax = 1 - cx - bx
-  const cy = 3 * y1
-  const by = 3 * (y2 - y1) - cy
-  const ay = 1 - cy - by
-
-  const sampleX = (t: number) => ((ax * t + bx) * t + cx) * t
-  const sampleY = (t: number) => ((ay * t + by) * t + cy) * t
-  const derivX = (t: number) => (3 * ax * t + 2 * bx) * t + cx
-
-  // solve for t given x
-  let u = t
-  for (let i = 0; i < 8; i++) {
-    const x = sampleX(u) - t
-    const d = derivX(u)
-    if (Math.abs(d) < 1e-6) break
-    u -= x / d
-  }
-  return sampleY(u)
-}
-
-function applyEasing(t: number, easing: EasingType, cbParams?: CubicBezierParams): number {
-  switch (easing) {
-    case 'linear': return t
-    case 'ease-in': return t * t * t
-    case 'ease-out': return 1 - Math.pow(1 - t, 3)
-    case 'ease-in-out': return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
-    case 'cubic-bezier':
-      return cbParams ? cubicBezier(cbParams, t) : t
-    default: return t
-  }
-}
+import type { Keyframe } from './types'
 
 export interface Position {
   x: number
   y: number
+}
+
+// Evaluate a cubic bezier at parameter t in [0,1].
+// P0 = start, P1 = cpOut of start keyframe, P2 = cpIn of end keyframe, P3 = end
+function cubicBezierPos(
+  t: number,
+  p0x: number, p0y: number,
+  p1x: number, p1y: number,
+  p2x: number, p2y: number,
+  p3x: number, p3y: number,
+): Position {
+  const mt = 1 - t
+  return {
+    x: mt**3*p0x + 3*mt**2*t*p1x + 3*mt*t**2*p2x + t**3*p3x,
+    y: mt**3*p0y + 3*mt**2*t*p1y + 3*mt*t**2*p2y + t**3*p3y,
+  }
+}
+
+function cpOut(kf: Keyframe): { x: number; y: number } {
+  return kf.cpOut ?? { x: kf.x, y: kf.y }
+}
+
+function cpIn(kf: Keyframe): { x: number; y: number } {
+  return kf.cpIn ?? { x: kf.x, y: kf.y }
 }
 
 export function interpolatePosition(keyframes: Keyframe[], time: number): Position {
@@ -54,11 +41,11 @@ export function interpolatePosition(keyframes: Keyframe[], time: number): Positi
   }
 
   let before = sorted[0]
-  let after = sorted[1]
+  let after  = sorted[1]
   for (let i = 0; i < sorted.length - 1; i++) {
     if (sorted[i].time <= time && sorted[i + 1].time >= time) {
       before = sorted[i]
-      after = sorted[i + 1]
+      after  = sorted[i + 1]
       break
     }
   }
@@ -66,11 +53,10 @@ export function interpolatePosition(keyframes: Keyframe[], time: number): Positi
   const span = after.time - before.time
   if (span === 0) return { x: after.x, y: after.y }
 
-  const rawT = (time - before.time) / span
-  const easedT = applyEasing(rawT, before.easing, before.cubicBezier)
+  const t = (time - before.time) / span
 
-  return {
-    x: before.x + (after.x - before.x) * easedT,
-    y: before.y + (after.y - before.y) * easedT,
-  }
+  const p1 = cpOut(before)
+  const p2 = cpIn(after)
+
+  return cubicBezierPos(t, before.x, before.y, p1.x, p1.y, p2.x, p2.y, after.x, after.y)
 }

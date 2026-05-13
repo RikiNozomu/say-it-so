@@ -1,6 +1,5 @@
 import type {
-  Horse, TrackShape, RefImage, UnitSystem,
-  EasingType, CubicBezierParams, ProjectFile,
+  Horse, TrackShape, RefImage, UnitSystem, ProjectFile,
 } from '@say-it-so/core'
 
 export type ActiveTool =
@@ -35,8 +34,10 @@ export type Action =
   | { type: 'SELECT_HORSE'; id: string | null }
   | { type: 'UPSERT_KEYFRAME'; horseId: string; time: number; x: number; y: number }
   | { type: 'UPDATE_KEYFRAME_TIME'; horseId: string; index: number; newTime: number }
-  | { type: 'UPDATE_KEYFRAME_EASING'; horseId: string; index: number; easing: EasingType; cubicBezier?: CubicBezierParams }
+  | { type: 'UPDATE_KEYFRAME_CP'; horseId: string; index: number; cpIn?: { x: number; y: number }; cpOut?: { x: number; y: number } }
+  | { type: 'UPDATE_KEYFRAME_CP_LIVE'; horseId: string; index: number; cpIn?: { x: number; y: number }; cpOut?: { x: number; y: number } }
   | { type: 'REMOVE_KEYFRAME'; horseId: string; index: number }
+  | { type: 'TOGGLE_MOTION_PATHS' }
 
   // track shapes
   | { type: 'ADD_SHAPE'; shape: TrackShape }

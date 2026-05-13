@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FiEdit2, FiTrash2, FiPlus } from 'react-icons/fi'
+import { FiEdit2, FiTrash2, FiPlus, FiEye, FiEyeOff } from 'react-icons/fi'
 import type { Horse } from '@say-it-so/core'
 import { useApp } from '../../context/AppContext'
 import { HorseModal } from '../modals/HorseModal'
@@ -27,13 +27,27 @@ export function HorsePanel() {
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-3 py-2 border-b border-border">
         <span className="text-sm font-semibold">Horses ({state.horses.length}/24)</span>
-        <button
-          onClick={() => canAdd && setShowAdd(true)}
-          disabled={!canAdd}
-          className="flex items-center gap-1 text-xs px-2 py-1 bg-accent hover:bg-red-500 text-white rounded disabled:opacity-40 transition-colors"
-        >
-          <FiPlus size={12} /> Add
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => dispatch({ type: 'TOGGLE_MOTION_PATHS' })}
+            title={state.showMotionPaths ? 'Hide motion paths' : 'Show motion paths'}
+            className={`flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors ${
+              state.showMotionPaths
+                ? 'bg-accent text-white'
+                : 'bg-border text-zinc-300 hover:bg-zinc-600'
+            }`}
+          >
+            {state.showMotionPaths ? <FiEye size={12} /> : <FiEyeOff size={12} />}
+            Path
+          </button>
+          <button
+            onClick={() => canAdd && setShowAdd(true)}
+            disabled={!canAdd}
+            className="flex items-center gap-1 text-xs px-2 py-1 bg-accent hover:bg-red-500 text-white rounded disabled:opacity-40 transition-colors"
+          >
+            <FiPlus size={12} /> Add
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto">

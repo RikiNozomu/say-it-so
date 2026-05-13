@@ -7,6 +7,7 @@ import { anchorsToPath, shapeToPenAnchors } from '../../utils/pen'
 import type { PenAnchor } from '../../utils/pen'
 import { UnifiedLayer } from './UnifiedLayer'
 import { HorseLayer } from './HorseLayer'
+import { MotionPathLayer } from './MotionPathLayer'
 import { MeasurementLayer } from './MeasurementLayer'
 import { EditOverlay } from './EditOverlay'
 
@@ -660,6 +661,7 @@ export function TrackCanvas() {
           dispatch({ type: 'SELECT_SHAPE', id })
         }} />
         <HorseLayer />
+        <MotionPathLayer />
         <MeasurementLayer active={measureActive} />
 
         {/* Edit overlay — point handles for the selected shape */}
