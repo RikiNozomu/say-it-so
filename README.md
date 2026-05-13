@@ -31,9 +31,11 @@ Say It So lets trainers, analysts, and racing enthusiasts choreograph horse race
 - **Undo / Redo** — Full history with Ctrl+Z / Ctrl+Y; disabled while mid-draw to prevent partial-path corruption
 
 ### Horse Panel
-- Add horses with number, name, jockey, stable, and breeder
-- 20+ silk patterns (solid, halved, diagonal, chevron, dots, stripes, star, diamond, and more)
-- Custom base colour and stripe colour per horse
+- Add up to 24 horses, each with a number (1–24) and name
+- Circle colour — 8 presets or a custom hex colour picker
+- Text colour — 5 presets or a custom hex colour picker; live preview in the modal
+- Edit or remove horses at any time; deletion confirms before removing all associated keyframes
+- Selected horse shows its keyframe count in the sidebar footer
 
 ### Timeline & Playback
 - Drag keyframes on the timeline to set horse positions at any point in time
