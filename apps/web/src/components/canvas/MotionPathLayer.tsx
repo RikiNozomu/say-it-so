@@ -1,4 +1,4 @@
-import React, { useRef } from 'react'
+import React, { useRef, useState } from 'react'
 import { Layer, Path, Circle, Line, Rect } from 'react-konva'
 import type Konva from 'konva'
 import { useApp } from '../../context/AppContext'
@@ -45,6 +45,7 @@ export function MotionPathLayer() {
   const { state, dispatch } = useApp()
   const dragRef = useRef<DragState | null>(null)
   const horseRef = useRef<typeof state.horses[0] | null>(null)
+  const [activeKfIdx, setActiveKfIdx] = useState<number | null>(null)
 
   if (state.activePanel !== 'horses' || !state.showMotionPaths) return null
 
@@ -89,9 +90,11 @@ export function MotionPathLayer() {
         dragRef.current = { kind: 'cpIn', horseId: selectedHorseId, kfIndex: origIdx, origX: inn.x, origY: inn.y, startMx: mx, startMy: my, symmetric: !e.evt.altKey }
         return
       }
-      // anchor square — click to activate smooth handles
+      // anchor square — drag to pull out handles
       if (Math.abs(mx - kf.x) <= hs * 1.5 && Math.abs(my - kf.y) <= hs * 1.5) {
-        dragRef.current = { kind: 'anchor', horseId: selectedHorseId, kfIndex: origIdx, origX: kf.x, origY: kf.y, startMx: mx, startMy: my, symmetric: false }
+        dispatch({ type: 'SNAPSHOT' })
+        setActiveKfIdx(origIdx)
+        dragRef.current = { kind: 'anchor', horseId: selectedHorseId, kfIndex: origIdx, origX: kf.x, origY: kf.y, startMx: mx, startMy: my, symmetric: true }
         return
       }
     }
@@ -99,7 +102,7 @@ export function MotionPathLayer() {
 
   function handleMouseMove(e: Konva.KonvaEventObject<MouseEvent>) {
     const d = dragRef.current
-    if (!d || d.kind === 'anchor') return
+    if (!d) return
     const stage = e.target.getStage()
     if (!stage) return
     const { x: mx, y: my } = canvasPos(stage)
@@ -107,7 +110,13 @@ export function MotionPathLayer() {
     const kf = horseRef.current?.keyframes[d.kfIndex]
     if (!kf) return
 
-    if (d.kind === 'cpOut') {
+    if (d.kind === 'anchor') {
+      // Drag from anchor pulls out cpOut; cpIn mirrors it
+      dispatch({ type: 'UPDATE_KEYFRAME_CP_LIVE', horseId: d.horseId, index: d.kfIndex,
+        cpOut: { x: mx, y: my },
+        cpIn:  { x: 2 * kf.x - mx, y: 2 * kf.y - my },
+      })
+    } else if (d.kind === 'cpOut') {
       const cpIn = d.symmetric ? { x: 2 * kf.x - mx, y: 2 * kf.y - my } : undefined
       dispatch({ type: 'UPDATE_KEYFRAME_CP_LIVE', horseId: d.horseId, index: d.kfIndex, cpOut: { x: mx, y: my }, cpIn })
     } else {
@@ -119,7 +128,7 @@ export function MotionPathLayer() {
   function handleMouseUp(e: Konva.KonvaEventObject<MouseEvent>) {
     const d = dragRef.current
     dragRef.current = null
-    if (!d || d.kind === 'anchor') return
+    if (!d) return
 
     const stage = e.target.getStage()
     if (!stage) return
@@ -127,6 +136,20 @@ export function MotionPathLayer() {
 
     const kf = horseRef.current?.keyframes[d.kfIndex]
     if (!kf) return
+
+    if (d.kind === 'anchor') {
+      // Small movement = treated as a click, reset handles to corner
+      if (Math.hypot(mx - d.startMx, my - d.startMy) < SNAP) {
+        dispatch({ type: 'UPDATE_KEYFRAME_CP', horseId: d.horseId, index: d.kfIndex,
+          cpIn: { x: kf.x, y: kf.y }, cpOut: { x: kf.x, y: kf.y } })
+      } else {
+        dispatch({ type: 'UPDATE_KEYFRAME_CP', horseId: d.horseId, index: d.kfIndex,
+          cpOut: { x: mx, y: my },
+          cpIn:  { x: 2 * kf.x - mx, y: 2 * kf.y - my },
+        })
+      }
+      return
+    }
 
     // Handle dragged back near anchor → reset to corner point
     if (Math.hypot(mx - kf.x, my - kf.y) < SNAP) {
@@ -172,34 +195,36 @@ export function MotionPathLayer() {
         const inn = cpIn(kf)
         const hasCpOut = kf.cpOut && (kf.cpOut.x !== kf.x || kf.cpOut.y !== kf.y)
         const hasCpIn  = kf.cpIn  && (kf.cpIn.x  !== kf.x || kf.cpIn.y  !== kf.y)
+        const isActive = activeKfIdx === origIdx
 
         return (
           <React.Fragment key={origIdx}>
-            {/* Handle guide lines */}
-            {hasCpOut && (
+            {/* Handle guide lines — shown when handle exists OR anchor is active */}
+            {(hasCpOut || isActive) && (
               <Line points={[kf.x, kf.y, out.x, out.y]}
                 stroke="#e94560" strokeWidth={1 / z} opacity={0.5} listening={false} dash={[3/z, 2/z]} />
             )}
-            {hasCpIn && (
+            {(hasCpIn || isActive) && (
               <Line points={[kf.x, kf.y, inn.x, inn.y]}
                 stroke="#e94560" strokeWidth={1 / z} opacity={0.5} listening={false} dash={[3/z, 2/z]} />
             )}
 
             {/* cpOut handle */}
-            {hasCpOut && (
+            {(hasCpOut || isActive) && (
               <Circle x={out.x} y={out.y} radius={cr}
                 fill="#ff6b8a" stroke="#fff" strokeWidth={0.5 / z} listening={false} />
             )}
             {/* cpIn handle */}
-            {hasCpIn && (
+            {(hasCpIn || isActive) && (
               <Circle x={inn.x} y={inn.y} radius={cr}
                 fill="#ff6b8a" stroke="#fff" strokeWidth={0.5 / z} listening={false} />
             )}
 
-            {/* Keyframe anchor square */}
+            {/* Keyframe anchor square — larger + white fill when active */}
             <Rect
-              x={kf.x - hs} y={kf.y - hs} width={hs * 2} height={hs * 2}
-              fill="#e94560" stroke="#fff" strokeWidth={1 / z}
+              x={kf.x - (isActive ? hs * 1.4 : hs)} y={kf.y - (isActive ? hs * 1.4 : hs)}
+              width={(isActive ? hs * 2.8 : hs * 2)} height={(isActive ? hs * 2.8 : hs * 2)}
+              fill={isActive ? '#fff' : '#e94560'} stroke={isActive ? '#e94560' : '#fff'} strokeWidth={1 / z}
               listening={false}
             />
           </React.Fragment>
