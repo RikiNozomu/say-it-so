@@ -220,26 +220,28 @@ export function TrackPanel() {
                   {(() => {
                     const isCorner = anc.cpIn.x === anc.x && anc.cpIn.y === anc.y
                                   && anc.cpOut.x === anc.x && anc.cpOut.y === anc.y
-                    const anchors = editShape.penAnchors!
-                    const prev = anchors[idx - 1] ?? anc
-                    const next = anchors[idx + 1] ?? anc
-                    const canSmooth = isCorner && Math.hypot(next.x - prev.x, next.y - prev.y) > 0
-                    const disabled = isCorner ? !canSmooth : false
                     return (
                       <button
-                        disabled={disabled}
                         onClick={() => {
+                          if (!editShape.penAnchors) return
                           dispatch({ type: 'SNAPSHOT' })
+                          const anchors = editShape.penAnchors
                           let newAnc: typeof anc
                           if (isCorner) {
+                            const prev = anchors[idx - 1] ?? anc
+                            const next = anchors[idx + 1] ?? anc
                             const dx = next.x - prev.x, dy = next.y - prev.y
                             const len = Math.hypot(dx, dy)
-                            const d = Math.min(
-                              Math.hypot(anc.x - prev.x, anc.y - prev.y),
-                              Math.hypot(next.x - anc.x, next.y - anc.y),
-                            ) * 0.4
-                            const ux = dx / len, uy = dy / len
-                            newAnc = { ...anc, cpIn: { x: anc.x - ux * d, y: anc.y - uy * d }, cpOut: { x: anc.x + ux * d, y: anc.y + uy * d } }
+                            if (len > 0) {
+                              const d = Math.min(
+                                Math.hypot(anc.x - prev.x, anc.y - prev.y),
+                                Math.hypot(next.x - anc.x, next.y - anc.y),
+                              ) * 0.4
+                              const ux = dx / len, uy = dy / len
+                              newAnc = { ...anc, cpIn: { x: anc.x - ux * d, y: anc.y - uy * d }, cpOut: { x: anc.x + ux * d, y: anc.y + uy * d } }
+                            } else {
+                              newAnc = anc
+                            }
                           } else {
                             newAnc = { ...anc, cpIn: { x: anc.x, y: anc.y }, cpOut: { x: anc.x, y: anc.y } }
                           }
@@ -247,7 +249,7 @@ export function TrackPanel() {
                           newAnchors[idx] = newAnc
                           dispatch({ type: 'UPDATE_SHAPE', id: editShape.id, patch: { penAnchors: newAnchors } })
                         }}
-                        className="w-full py-1 rounded border border-zinc-600 text-xs text-zinc-300 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        className="w-full py-1 rounded border border-zinc-600 text-xs text-zinc-300 hover:bg-zinc-700 transition-colors"
                       >
                         {isCorner ? 'Convert to Smooth Point' : 'Convert to Corner Point'}
                       </button>
