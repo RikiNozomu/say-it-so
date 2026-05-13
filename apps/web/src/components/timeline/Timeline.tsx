@@ -215,24 +215,30 @@ function KeyframeDiamond({
   onContextMenu: (x: number, y: number) => void
 }) {
   const { state } = useApp()
-  const dragging = useRef(false)
   const parentRef = useRef<HTMLDivElement>(null)
+  const [dragLeft, setDragLeft] = useState<number | null>(null)
+
+  const displayLeft = dragLeft !== null ? dragLeft : left
 
   function handleMouseDown(e: React.MouseEvent) {
     e.stopPropagation()
-    dragging.current = true
     const parent = parentRef.current?.parentElement
     if (!parent) return
     const rect = parent.getBoundingClientRect()
+    const duration = state.duration  // capture once
+
+    function pctAt(me: MouseEvent) {
+      const x = me.clientX - rect.left
+      return Math.max(0, Math.min(100, (x / rect.width) * 100))
+    }
 
     function onMove(me: MouseEvent) {
-      if (!dragging.current) return
-      const x = me.clientX - rect.left
-      const t = Math.max(0, Math.min(state.duration, (x / rect.width) * state.duration))
-      onDrag(t)
+      setDragLeft(pctAt(me))
     }
-    function onUp() {
-      dragging.current = false
+    function onUp(me: MouseEvent) {
+      const pct = pctAt(me)
+      setDragLeft(null)
+      onDrag(Math.max(0, Math.min(duration, (pct / 100) * duration)))
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
@@ -245,7 +251,7 @@ function KeyframeDiamond({
       ref={parentRef}
       className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rotate-45 cursor-grab active:cursor-grabbing border hover:border-white z-10"
       style={{
-        left: `${left}%`,
+        left: `${displayLeft}%`,
         background: hasCurve ? '#e94560' : '#a0a0a0',
         borderColor: hasCurve ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.4)',
       }}
