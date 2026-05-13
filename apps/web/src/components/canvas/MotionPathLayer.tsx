@@ -180,7 +180,7 @@ export function MotionPathLayer() {
       if (Math.abs(mx - kf.x) <= hs * 1.5 && Math.abs(my - kf.y) <= hs * 1.5) {
         dispatch({ type: 'SNAPSHOT' })
         setActiveKfIdx(origIdx)
-        const kind: HandleKind = (e.evt.ctrlKey || e.evt.metaKey) ? 'anchor-move' : 'anchor'
+        const kind: HandleKind = (e.evt.ctrlKey || e.evt.metaKey) ? 'anchor' : 'anchor-move'
         dragRef.current = { kind, horseId: selectedHorseId, kfIndex: origIdx, origX: kf.x, origY: kf.y, startMx: mx, startMy: my, symmetric: true }
         attachDragListeners(stage)
         return
