@@ -75,6 +75,7 @@ export function TrackCanvas() {
         dispatch({ type: 'SET_EDITING_SHAPE', id: null })
       }
       if (e.code === 'Delete' || e.code === 'Backspace') {
+        if (state.editingShapeId) return  // EditOverlay handles anchor deletion
         if (state.selectedShapeId) dispatch({ type: 'REMOVE_SHAPE', id: state.selectedShapeId })
         else if (state.selectedRefImageId) dispatch({ type: 'REMOVE_REF_IMAGE', id: state.selectedRefImageId })
       }

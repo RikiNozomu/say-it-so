@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Layer, Circle, Rect, Line, Path } from 'react-konva'
 import type Konva from 'konva'
 import { useApp } from '../../context/AppContext'
@@ -79,8 +79,23 @@ export function EditOverlay({
   const { state, dispatch } = useApp()
   const dragRef = useRef<DragState | null>(null)
   const anchorsRef = useRef<PenAnchor[]>([])
-  // Index of the endpoint that would be snapped-to-close if the drag is released
   const [closingHint, setClosingHint] = useState<number | null>(null)
+
+  // Delete/Backspace: remove the selected anchor
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.code !== 'Delete' && e.code !== 'Backspace') return
+      if (state.selectedAnchorIdx === null) return
+      const ancs = anchorsRef.current
+      if (ancs.length <= 2) return
+      const idx = state.selectedAnchorIdx
+      dispatch({ type: 'SNAPSHOT' })
+      dispatch({ type: 'UPDATE_SHAPE', id: state.editingShapeId!, patch: { penAnchors: [...ancs.slice(0, idx), ...ancs.slice(idx + 1)] } })
+      dispatch({ type: 'SELECT_ANCHOR', idx: null })
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [state.selectedAnchorIdx, state.editingShapeId, dispatch])
 
   const { editingShapeId } = state
   if (!editingShapeId) return null
@@ -108,12 +123,6 @@ export function EditOverlay({
   }
 
   // ── click actions ──────────────────────────────────────────────────────────
-
-  function removeAnchor(idx: number) {
-    const ancs = anchorsRef.current
-    if (ancs.length <= 2) return
-    save([...ancs.slice(0, idx), ...ancs.slice(idx + 1)])
-  }
 
   function toggleCornerSmooth(idx: number) {
     const ancs = [...anchorsRef.current]
@@ -155,10 +164,11 @@ export function EditOverlay({
       }
     }
 
-    // 2. Check anchor squares
+    // 2. Check anchor squares — select immediately on mouseDown
     for (let i = 0; i < ancs.length; i++) {
       const a = ancs[i]
       if (Math.abs(mx - a.x) <= hs && Math.abs(my - a.y) <= hs) {
+        dispatch({ type: 'SELECT_ANCHOR', idx: i })
         dragRef.current = { kind: 'anchor', idx: i, origAnchor: { ...a }, startX: mx, startY: my, altKey, hasMoved: false }
         return
       }
@@ -296,9 +306,8 @@ export function EditOverlay({
       const isEndpoint = !shape!.closed && (d.idx === 0 || d.idx === ancs.length - 1)
       if (isEndpoint) {
         onContinuePen(shape!.id, ancs, d.idx === 0 ? 'start' : 'end')
-      } else {
-        removeAnchor(d.idx)
       }
+      // anchor is already selected via mouseDown — no remove on click
       return
     }
 
@@ -363,6 +372,16 @@ export function EditOverlay({
       />
     )
   })
+
+  // Selected anchor ring (red glow)
+  const selIdx = state.selectedAnchorIdx
+  if (selIdx !== null && ancs[selIdx]) {
+    const sa = ancs[selIdx]
+    elems.push(
+      <Circle key="sel-anchor" x={sa.x} y={sa.y} radius={hs * 2.2}
+        stroke="#e94560" strokeWidth={2 / z} fill="rgba(233,69,96,0.18)" listening={false} />
+    )
+  }
 
   // Snap-to-close ring: glowing circle around the target endpoint
   if (closingHint !== null && ancs[closingHint]) {

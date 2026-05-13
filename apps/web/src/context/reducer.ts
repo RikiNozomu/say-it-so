@@ -27,6 +27,7 @@ export interface AppState {
   selectedShapeId: string | null
   selectedRefImageId: string | null
   editingShapeId: string | null
+  selectedAnchorIdx: number | null
   polygonSides: number
 
   // playback
@@ -57,6 +58,7 @@ export const DEFAULT_STATE: AppState = {
   selectedShapeId: null,
   selectedRefImageId: null,
   editingShapeId: null,
+  selectedAnchorIdx: null,
   polygonSides: 6,
 
   currentTime: 0,
@@ -218,7 +220,9 @@ export function reducer(state: AppState, action: Action): AppState {
         editingShapeId: state.editingShapeId === action.id ? null : state.editingShapeId,
       }
     case 'SET_EDITING_SHAPE':
-      return { ...state, editingShapeId: action.id }
+      return { ...state, editingShapeId: action.id, selectedAnchorIdx: null }
+    case 'SELECT_ANCHOR':
+      return { ...state, selectedAnchorIdx: action.idx }
     case 'SET_POLYGON_SIDES':
       return { ...state, polygonSides: Math.max(3, Math.min(32, action.sides)) }
     case 'SELECT_SHAPE':
@@ -272,6 +276,7 @@ export function reducer(state: AppState, action: Action): AppState {
         selectedHorseId: state.selectedHorseId,
         selectedRefImageId: state.selectedRefImageId,
         editingShapeId: null,
+        selectedAnchorIdx: null,
         playbackState: state.playbackState,
         currentTime: state.currentTime,
         playbackSpeed: state.playbackSpeed,

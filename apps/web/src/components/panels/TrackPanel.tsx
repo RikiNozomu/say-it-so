@@ -147,16 +147,74 @@ export function TrackPanel() {
           <div className="flex flex-col gap-2">
             <div className="text-xs text-cyan-400 bg-cyan-900/30 border border-cyan-800 rounded px-2 py-1.5 leading-relaxed">
               <div className="font-semibold mb-0.5">Editing {editIsTrack ? 'track' : editIsRuler ? 'ruler' : 'path'}</div>
+              <div className="text-zinc-400">Click anchor — select it</div>
               <div className="text-zinc-400">Drag anchor — move it</div>
               <div className="text-zinc-400">Click segment — add point</div>
               <div className="text-zinc-400">Drag segment — add curve</div>
-              <div className="text-zinc-400">Click inner anchor — remove</div>
               <div className="text-zinc-400">Alt+drag handle — break symmetry</div>
               <div className="text-zinc-400">Alt+click anchor — toggle smooth/sharp</div>
               {!editIsRuler && !editIsTrack && <div className="text-zinc-400">Drag endpoint near other — close path</div>}
               <div className="text-zinc-400">Click endpoint — continue</div>
               <div className="text-zinc-400">Esc — exit edit</div>
             </div>
+
+            {/* Selected anchor info */}
+            {(() => {
+              const idx = state.selectedAnchorIdx
+              if (idx === null || !editShape?.penAnchors) return null
+              const anc = editShape.penAnchors[idx]
+              if (!anc) return null
+              const canDelete = editShape.penAnchors.length > 2
+              const isTrackRace = editShape.type === 'trackrace'
+              const unit = editShape.trackUnit ?? 'm'
+              const widths = editShape.trackWidths ?? editShape.penAnchors.map(() => 20 * state.trackScale)
+              const currentWidthPx = widths[idx] ?? widths[widths.length - 1]
+              const currentWidthDisplay = parseFloat(pxToTrackWidth(currentWidthPx, unit, state.trackScale).toFixed(2))
+              return (
+                <div className="border border-accent/50 rounded p-2 flex flex-col gap-2">
+                  <span className="text-xs text-accent font-semibold">
+                    Anchor {idx + 1} / {editShape.penAnchors.length}
+                  </span>
+
+                  {isTrackRace && (
+                    <label className="flex items-center gap-2 text-xs">
+                      <span className="text-zinc-400 w-16 shrink-0">Width ({unit})</span>
+                      <input
+                        type="number"
+                        min={0.1}
+                        step={unit === 'px' ? 1 : 0.5}
+                        value={currentWidthDisplay}
+                        onFocus={() => dispatch({ type: 'SNAPSHOT' })}
+                        onChange={(e) => {
+                          const px = trackWidthToPx(Number(e.target.value), unit, state.trackScale)
+                          const newWidths = [...widths]
+                          newWidths[idx] = Math.max(1, px)
+                          dispatch({ type: 'UPDATE_SHAPE_LIVE', id: editShape.id, patch: { trackWidths: newWidths } })
+                        }}
+                        className="w-full bg-zinc-800 border border-zinc-600 focus:border-accent rounded px-2 py-0.5 text-xs text-white outline-none"
+                      />
+                    </label>
+                  )}
+
+                  <button
+                    disabled={!canDelete}
+                    onClick={() => {
+                      if (!canDelete || !editShape.penAnchors) return
+                      dispatch({ type: 'SNAPSHOT' })
+                      const newAnchors = [...editShape.penAnchors.slice(0, idx), ...editShape.penAnchors.slice(idx + 1)]
+                      const patch: Partial<typeof editShape> = { penAnchors: newAnchors }
+                      if (isTrackRace) patch.trackWidths = [...widths.slice(0, idx), ...widths.slice(idx + 1)]
+                      dispatch({ type: 'UPDATE_SHAPE', id: editShape.id, patch })
+                      dispatch({ type: 'SELECT_ANCHOR', idx: null })
+                    }}
+                    className="w-full py-1 rounded border border-red-700 text-xs text-red-400 hover:bg-red-900/30 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Delete Anchor
+                  </button>
+                </div>
+              )
+            })()}
+
             {editShape?.type === 'pen' && (
               <button
                 onClick={() => dispatch({

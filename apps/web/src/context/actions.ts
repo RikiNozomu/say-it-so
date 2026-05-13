@@ -62,6 +62,7 @@ export type Action =
   // shape editing
   | { type: 'SET_EDITING_SHAPE'; id: string | null }
   | { type: 'SET_POLYGON_SIDES'; sides: number }
+  | { type: 'SELECT_ANCHOR'; idx: number | null }
 
   // history
   | { type: 'UNDO' }
