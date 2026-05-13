@@ -37,7 +37,7 @@ function bezierPathD(sorted: Keyframe[]): string {
 
 // ── drag state ────────────────────────────────────────────────────────────────
 
-type HandleKind = 'cpOut' | 'cpIn' | 'anchor'
+type HandleKind = 'cpOut' | 'cpIn' | 'anchor' | 'anchor-move'
 
 interface DragState {
   kind: HandleKind
@@ -85,7 +85,9 @@ export function MotionPathLayer() {
       const kf = horseRef.current?.keyframes[d.kfIndex]
       if (!kf) return
 
-      if (d.kind === 'anchor') {
+      if (d.kind === 'anchor-move') {
+        dispatch({ type: 'UPDATE_KEYFRAME_XY_LIVE', horseId: d.horseId, index: d.kfIndex, x: mx, y: my })
+      } else if (d.kind === 'anchor') {
         dispatch({ type: 'UPDATE_KEYFRAME_CP_LIVE', horseId: d.horseId, index: d.kfIndex,
           cpOut: { x: mx, y: my },
           cpIn:  { x: 2 * kf.x - mx, y: 2 * kf.y - my },
@@ -110,6 +112,11 @@ export function MotionPathLayer() {
       const kf = horseRef.current?.keyframes[d.kfIndex]
       if (!kf) return
       const snap = 12 / stage.scaleX()
+
+      if (d.kind === 'anchor-move') {
+        dispatch({ type: 'UPDATE_KEYFRAME_XY', horseId: d.horseId, index: d.kfIndex, x: mx, y: my })
+        return
+      }
 
       if (d.kind === 'anchor') {
         if (Math.hypot(mx - d.startMx, my - d.startMy) < snap) {
@@ -173,7 +180,8 @@ export function MotionPathLayer() {
       if (Math.abs(mx - kf.x) <= hs * 1.5 && Math.abs(my - kf.y) <= hs * 1.5) {
         dispatch({ type: 'SNAPSHOT' })
         setActiveKfIdx(origIdx)
-        dragRef.current = { kind: 'anchor', horseId: selectedHorseId, kfIndex: origIdx, origX: kf.x, origY: kf.y, startMx: mx, startMy: my, symmetric: true }
+        const kind: HandleKind = (e.evt.ctrlKey || e.evt.metaKey) ? 'anchor-move' : 'anchor'
+        dragRef.current = { kind, horseId: selectedHorseId, kfIndex: origIdx, origX: kf.x, origY: kf.y, startMx: mx, startMy: my, symmetric: true }
         attachDragListeners(stage)
         return
       }

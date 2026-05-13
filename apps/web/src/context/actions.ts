@@ -36,6 +36,8 @@ export type Action =
   | { type: 'UPDATE_KEYFRAME_TIME'; horseId: string; index: number; newTime: number }
   | { type: 'UPDATE_KEYFRAME_CP'; horseId: string; index: number; cpIn?: { x: number; y: number }; cpOut?: { x: number; y: number } }
   | { type: 'UPDATE_KEYFRAME_CP_LIVE'; horseId: string; index: number; cpIn?: { x: number; y: number }; cpOut?: { x: number; y: number } }
+  | { type: 'UPDATE_KEYFRAME_XY'; horseId: string; index: number; x: number; y: number }
+  | { type: 'UPDATE_KEYFRAME_XY_LIVE'; horseId: string; index: number; x: number; y: number }
   | { type: 'REMOVE_KEYFRAME'; horseId: string; index: number }
   | { type: 'TOGGLE_MOTION_PATHS' }
 

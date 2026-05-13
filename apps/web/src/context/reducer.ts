@@ -199,6 +199,26 @@ export function reducer(state: AppState, action: Action): AppState {
           return { ...h, keyframes: kfs }
         }),
       }
+    case 'UPDATE_KEYFRAME_XY':
+    case 'UPDATE_KEYFRAME_XY_LIVE':
+      return {
+        ...state,
+        horses: state.horses.map((h) => {
+          if (h.id !== action.horseId) return h
+          const kfs = [...h.keyframes]
+          const kf = kfs[action.index]
+          if (!kf) return h
+          const dx = action.x - kf.x, dy = action.y - kf.y
+          kfs[action.index] = {
+            ...kf,
+            x: action.x,
+            y: action.y,
+            cpIn:  kf.cpIn  ? { x: kf.cpIn.x  + dx, y: kf.cpIn.y  + dy } : undefined,
+            cpOut: kf.cpOut ? { x: kf.cpOut.x + dx, y: kf.cpOut.y + dy } : undefined,
+          }
+          return { ...h, keyframes: kfs }
+        }),
+      }
     case 'TOGGLE_MOTION_PATHS':
       return { ...state, showMotionPaths: !state.showMotionPaths }
     case 'REMOVE_KEYFRAME':
