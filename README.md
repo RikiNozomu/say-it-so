@@ -20,13 +20,15 @@ Say It So lets trainers, analysts, and racing enthusiasts choreograph horse race
 
 ### Track Editor
 - **Pen tool** — Photoshop-style bezier pen: click for corner anchors, click+drag for smooth curves, Alt+drag to break handle symmetry
+- **Track Race tool** — Variable-width bezier corridor: draws a race track with turf or dirt surface texture, adjustable track width per anchor point, white sideroad borders, and horse-length tick markers. Width can be set in px, metres, or miles
+- **Ruler tool** — Measure curved distances along any path; labels show 0 m at the start and total distance at the end, with configurable interval markers and font size
 - **Shape tools** — Rectangle, Ellipse, Polygon (N-sided), all with stroke/fill/opacity controls
 - **Shift constraint** — Hold Shift while drawing to snap angles to 15° increments; constrains rect/ellipse to square/circle
 - **Edit mode** — Double-click any shape to enter vertex editing: move anchors, add/remove points, drag endpoints together to close a path
 - **Close/Open path** — Drag one endpoint onto the other, or use the "Close Path" button; fill is enabled automatically
 - **Reference images** — Upload background images (track maps, diagrams) and adjust opacity/position
 - **Layer management** — Reorder, lock, hide, rename, and delete layers from the sidebar
-- **Undo / Redo** — Full history with Ctrl+Z / Ctrl+Y
+- **Undo / Redo** — Full history with Ctrl+Z / Ctrl+Y; disabled while mid-draw to prevent partial-path corruption
 
 ### Horse Panel
 - Add horses with number, name, jockey, stable, and breeder
@@ -128,14 +130,16 @@ docker run -p 3000:80 say-it-so
 ```
 say-it-so/
 ├── apps/
-│   └── web/                  # React application
+│   └── web/
+│       ├── public/
+│       │   └── textures/         # SVG tile textures (turf, dirt)
 │       └── src/
-│           ├── components/   # Canvas, panels, timeline, toolbar
-│           ├── context/      # Global state (reducer + actions)
-│           ├── hooks/        # usePlayback
-│           └── utils/        # Pen tool geometry helpers
+│           ├── components/       # Canvas, panels, timeline, toolbar
+│           ├── context/          # Global state (reducer + actions)
+│           ├── hooks/            # usePlayback
+│           └── utils/            # Pen, ruler, and track race geometry helpers
 └── packages/
-    └── core/                 # Shared TypeScript types (Horse, TrackShape, …)
+    └── core/                     # Shared TypeScript types (Horse, TrackShape, …)
 ```
 
 ---
@@ -152,4 +156,3 @@ say-it-so/
 | `Esc` | Cancel drawing / exit edit mode |
 | `Shift` | Snap angle to 15° · constrain to square/circle |
 | `Alt` | Break bezier handle symmetry |
-| `P` | *(planned)* Pen tool shortcut |

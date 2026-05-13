@@ -296,6 +296,8 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
   const groupRef = useRef<Konva.Group>(null)
   const trRef = useRef<Konva.Transformer>(null)
   const shiftRef = useRef(false)
+  const [turfImage] = useImage('/textures/turf.svg')
+  const [dirtImage] = useImage('/textures/dirt.svg')
 
   useEffect(() => {
     if (!selected) return
@@ -342,7 +344,6 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
   const widths = shape.trackWidths ?? anchors.map(() => 20 * state.trackScale)
   const borderWidths = shape.trackBorderWidths ?? anchors.map(() => 3 * state.trackScale)
   const borderColor = withAlpha(shape.trackBorderColor ?? '#ffffff', shape.trackBorderOpacity ?? 1)
-  const fillColor = SURFACE_FILL[surface]
 
   const samples = sampleTrackPath(anchors)
   if (samples.length < 2) return null
@@ -352,6 +353,11 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
   const fillPath   = buildTrackPolygon(samples, widths, anchorCount, 'fill', 0)
   const leftPath   = buildTrackPolygon(samples, widths, anchorCount, 'left',  avgBorderWidth / 2)
   const rightPath  = buildTrackPolygon(samples, widths, anchorCount, 'right', avgBorderWidth / 2)
+
+  const textureImage = surface === 'turf' ? turfImage : dirtImage
+  const surfaceFillProps = textureImage
+    ? { fillPatternImage: textureImage, fillPatternRepeat: 'repeat' as const }
+    : { fill: SURFACE_FILL[surface] }
 
   // Horse-length tick marks on both borders
   const horseInterval = shape.trackHorseInterval ?? 0
@@ -391,7 +397,7 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
         shadowColor="#e94560"
       >
         {/* Track surface fill */}
-        <Path data={fillPath} fill={fillColor} stroke="transparent" strokeWidth={0} listening={true} hitStrokeWidth={0} />
+        <Path data={fillPath} {...surfaceFillProps} stroke="transparent" strokeWidth={0} listening={true} hitStrokeWidth={0} />
 
         {/* Left border */}
         <Path data={leftPath} fill="transparent" stroke={borderColor} strokeWidth={avgBorderWidth} listening={false} />

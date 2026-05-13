@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <!-- Base dirt colour -->
+  <rect width="64" height="64" fill="#9b6b3a"/>
+  <!-- Sandy grain overlay -->
+  <rect width="64" height="64" fill="#a87640" opacity="0.5"/>
+  <!-- Clumps and pebbles -->
+  <ellipse cx="5"  cy="7"  rx="2.5" ry="1.5" fill="#7a4f22" opacity="0.7"/>
+  <ellipse cx="14" cy="3"  rx="1.5" ry="1"   fill="#c4934e" opacity="0.6"/>
+  <ellipse cx="22" cy="9"  rx="2"   ry="1.2" fill="#7a4f22" opacity="0.5"/>
+  <ellipse cx="31" cy="5"  rx="1.2" ry="0.8" fill="#c4934e" opacity="0.7"/>
+  <ellipse cx="40" cy="11" rx="2.5" ry="1.5" fill="#7a4f22" opacity="0.6"/>
+  <ellipse cx="50" cy="4"  rx="1.5" ry="1"   fill="#c4934e" opacity="0.5"/>
+  <ellipse cx="58" cy="8"  rx="2"   ry="1.2" fill="#7a4f22" opacity="0.7"/>
+  <ellipse cx="3"  cy="18" rx="1.5" ry="0.9" fill="#c4934e" opacity="0.6"/>
+  <ellipse cx="11" cy="22" rx="2.2" ry="1.3" fill="#7a4f22" opacity="0.5"/>
+  <ellipse cx="19" cy="16" rx="1"   ry="0.7" fill="#c4934e" opacity="0.8"/>
+  <ellipse cx="27" cy="21" rx="2.5" ry="1.5" fill="#7a4f22" opacity="0.6"/>
+  <ellipse cx="36" cy="17" rx="1.5" ry="1"   fill="#c4934e" opacity="0.5"/>
+  <ellipse cx="44" cy="23" rx="2"   ry="1.2" fill="#7a4f22" opacity="0.7"/>
+  <ellipse cx="53" cy="18" rx="1.2" ry="0.8" fill="#c4934e" opacity="0.6"/>
+  <ellipse cx="60" cy="24" rx="2.5" ry="1.5" fill="#7a4f22" opacity="0.5"/>
+  <ellipse cx="7"  cy="32" rx="2"   ry="1.2" fill="#c4934e" opacity="0.7"/>
+  <ellipse cx="16" cy="35" rx="1.5" ry="1"   fill="#7a4f22" opacity="0.6"/>
+  <ellipse cx="24" cy="30" rx="2.5" ry="1.5" fill="#c4934e" opacity="0.5"/>
+  <ellipse cx="33" cy="37" rx="1"   ry="0.7" fill="#7a4f22" opacity="0.8"/>
+  <ellipse cx="42" cy="31" rx="2.2" ry="1.3" fill="#c4934e" opacity="0.6"/>
+  <ellipse cx="49" cy="36" rx="1.5" ry="0.9" fill="#7a4f22" opacity="0.5"/>
+  <ellipse cx="57" cy="32" rx="2"   ry="1.2" fill="#c4934e" opacity="0.7"/>
+  <ellipse cx="4"  cy="45" rx="1.2" ry="0.8" fill="#7a4f22" opacity="0.6"/>
+  <ellipse cx="13" cy="48" rx="2.5" ry="1.5" fill="#c4934e" opacity="0.5"/>
+  <ellipse cx="21" cy="43" rx="1.5" ry="1"   fill="#7a4f22" opacity="0.7"/>
+  <ellipse cx="29" cy="50" rx="2"   ry="1.2" fill="#c4934e" opacity="0.6"/>
+  <ellipse cx="38" cy="44" rx="1"   ry="0.7" fill="#7a4f22" opacity="0.8"/>
+  <ellipse cx="46" cy="49" rx="2.5" ry="1.5" fill="#c4934e" opacity="0.5"/>
+  <ellipse cx="55" cy="45" rx="1.5" ry="0.9" fill="#7a4f22" opacity="0.7"/>
+  <ellipse cx="62" cy="51" rx="2.2" ry="1.3" fill="#c4934e" opacity="0.6"/>
+  <ellipse cx="8"  cy="58" rx="2"   ry="1.2" fill="#7a4f22" opacity="0.5"/>
+  <ellipse cx="17" cy="62" rx="1.2" ry="0.8" fill="#c4934e" opacity="0.7"/>
+  <ellipse cx="26" cy="57" rx="2.5" ry="1.5" fill="#7a4f22" opacity="0.6"/>
+  <ellipse cx="35" cy="61" rx="1.5" ry="1"   fill="#c4934e" opacity="0.5"/>
+  <ellipse cx="43" cy="56" rx="2"   ry="1.2" fill="#7a4f22" opacity="0.7"/>
+  <ellipse cx="52" cy="60" rx="1"   ry="0.7" fill="#c4934e" opacity="0.8"/>
+  <ellipse cx="61" cy="58" rx="2.5" ry="1.5" fill="#7a4f22" opacity="0.6"/>
+  <!-- Fine sand speckles -->
+  <rect x="9"  y="13" width="1" height="1" fill="#d4a96a" opacity="0.5"/>
+  <rect x="29" y="27" width="1" height="1" fill="#d4a96a" opacity="0.5"/>
+  <rect x="47" y="41" width="1" height="1" fill="#d4a96a" opacity="0.5"/>
+  <rect x="18" y="54" width="1" height="1" fill="#d4a96a" opacity="0.5"/>
+  <rect x="56" y="15" width="1" height="1" fill="#d4a96a" opacity="0.5"/>
+  <rect x="37" y="6"  width="1" height="1" fill="#d4a96a" opacity="0.5"/>
+</svg>

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <defs>
+    <pattern id="stripe" x="0" y="0" width="16" height="64" patternUnits="userSpaceOnUse">
+      <rect width="16" height="64" fill="#3a7d3a"/>
+      <rect width="8" height="64" fill="#4a9040"/>
+    </pattern>
+  </defs>
+  <!-- Base mowed stripes -->
+  <rect width="64" height="64" fill="url(#stripe)"/>
+  <!-- Subtle grass blade marks -->
+  <line x1="2"  y1="4"  x2="3"  y2="0"  stroke="#2d6030" stroke-width="0.8" opacity="0.6"/>
+  <line x1="6"  y1="12" x2="7"  y2="8"  stroke="#2d6030" stroke-width="0.8" opacity="0.6"/>
+  <line x1="10" y1="4"  x2="11" y2="0"  stroke="#5aaa50" stroke-width="0.8" opacity="0.4"/>
+  <line x1="14" y1="20" x2="15" y2="16" stroke="#2d6030" stroke-width="0.8" opacity="0.6"/>
+  <line x1="2"  y1="36" x2="3"  y2="32" stroke="#5aaa50" stroke-width="0.8" opacity="0.4"/>
+  <line x1="6"  y1="44" x2="7"  y2="40" stroke="#2d6030" stroke-width="0.8" opacity="0.6"/>
+  <line x1="10" y1="52" x2="11" y2="48" stroke="#5aaa50" stroke-width="0.8" opacity="0.4"/>
+  <line x1="14" y1="60" x2="15" y2="56" stroke="#2d6030" stroke-width="0.8" opacity="0.6"/>
+  <line x1="18" y1="4"  x2="19" y2="0"  stroke="#2d6030" stroke-width="0.8" opacity="0.6"/>
+  <line x1="22" y1="28" x2="23" y2="24" stroke="#5aaa50" stroke-width="0.8" opacity="0.4"/>
+  <line x1="26" y1="8"  x2="27" y2="4"  stroke="#2d6030" stroke-width="0.8" opacity="0.6"/>
+  <line x1="30" y1="36" x2="31" y2="32" stroke="#5aaa50" stroke-width="0.8" opacity="0.4"/>
+  <line x1="34" y1="16" x2="35" y2="12" stroke="#2d6030" stroke-width="0.8" opacity="0.6"/>
+  <line x1="38" y1="44" x2="39" y2="40" stroke="#5aaa50" stroke-width="0.8" opacity="0.4"/>
+  <line x1="42" y1="24" x2="43" y2="20" stroke="#2d6030" stroke-width="0.8" opacity="0.6"/>
+  <line x1="46" y1="52" x2="47" y2="48" stroke="#5aaa50" stroke-width="0.8" opacity="0.4"/>
+  <line x1="50" y1="8"  x2="51" y2="4"  stroke="#2d6030" stroke-width="0.8" opacity="0.6"/>
+  <line x1="54" y1="32" x2="55" y2="28" stroke="#5aaa50" stroke-width="0.8" opacity="0.4"/>
+  <line x1="58" y1="48" x2="59" y2="44" stroke="#2d6030" stroke-width="0.8" opacity="0.6"/>
+  <line x1="62" y1="16" x2="63" y2="12" stroke="#5aaa50" stroke-width="0.8" opacity="0.4"/>
+</svg>
