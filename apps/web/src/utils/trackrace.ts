@@ -80,6 +80,19 @@ export function sampleTrackPath(anchors: PenAnchor[]): SamplePoint[] {
   return points
 }
 
+// Binary-search samples (sorted by s.t arc-length ratio) to get the tangent at a given ratio.
+// This is correct even on sharp curves where bezier-parameter samples are non-uniformly spaced.
+export function tangentAtRatio(samples: SamplePoint[], ratio: number): { tx: number; ty: number } {
+  if (samples.length === 0) return { tx: 1, ty: 0 }
+  let lo = 0, hi = samples.length - 1
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1
+    if (samples[mid].t < ratio) lo = mid + 1
+    else hi = mid
+  }
+  return { tx: samples[lo].tx, ty: samples[lo].ty }
+}
+
 export function interpolateWidth(t: number, widths: number[], anchorCount: number): number {
   if (!widths || widths.length === 0) return 20
   if (widths.length === 1) return widths[0]

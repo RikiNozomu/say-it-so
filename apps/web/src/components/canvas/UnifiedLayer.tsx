@@ -6,7 +6,7 @@ import type { TrackShape, RefImage } from '@say-it-so/core'
 import { useApp } from '../../context/AppContext'
 import { anchorsToPath } from '../../utils/pen'
 import { penPathLengthPx, samplePathAtRatio, formatRulerLength, intervalToPx } from '../../utils/ruler'
-import { sampleTrackPath, buildTrackPolygon, interpolateWidth, anchorHalfWidths, trackWidthToPx, formatTrackWidth } from '../../utils/trackrace'
+import { sampleTrackPath, buildTrackPolygon, interpolateWidth, anchorHalfWidths, trackWidthToPx, formatTrackWidth, tangentAtRatio } from '../../utils/trackrace'
 
 function withAlpha(hex: string, alpha: number): string {
   if (!hex || hex === 'transparent') return 'transparent'
@@ -374,9 +374,8 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
       while (d < totalLen - intervalPx * 0.1) {
         const ratio = d / totalLen
         const pt = samplePathAtRatio(anchors, ratio, false)
-        const sampleIdx = Math.round(ratio * (samples.length - 1))
-        const s = samples[Math.min(sampleIdx, samples.length - 1)]
-        const nx = -s.ty, ny = s.tx
+        const { tx, ty } = tangentAtRatio(samples, ratio)
+        const nx = -ty, ny = tx
         const hw = interpolateWidth(ratio, widths, anchorCount) / 2 + avgBorderWidth
         const label = formatTrackWidth(d, unit, state.trackScale)
         tickMarkers.push({
