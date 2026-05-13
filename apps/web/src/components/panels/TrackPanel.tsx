@@ -624,6 +624,35 @@ export function TrackPanel() {
                     />
                     <span className="text-zinc-500 shrink-0">{unit}</span>
                   </label>
+                  <label className="flex items-center gap-2 text-xs mt-1.5">
+                    <span className="text-zinc-400 w-16 shrink-0">Color</span>
+                    <input type="color"
+                      value={selectedShape.trackTickColor ?? '#e94560'}
+                      onMouseDown={() => dispatch({ type: 'SNAPSHOT' })}
+                      onChange={(e) => dispatch({ type: 'UPDATE_SHAPE_LIVE', id: selectedShape.id, patch: { trackTickColor: e.target.value } })}
+                      className="h-6 w-8 cursor-pointer rounded border-0 bg-transparent shrink-0"
+                    />
+                  </label>
+                  <label className="flex items-center gap-2 text-xs mt-1.5">
+                    <span className="text-zinc-400 w-16 shrink-0">Font size</span>
+                    <input type="range" min={6} max={32} step={1}
+                      value={selectedShape.trackTickFontSize ?? 10}
+                      onMouseDown={() => dispatch({ type: 'SNAPSHOT' })}
+                      onChange={(e) => dispatch({ type: 'UPDATE_SHAPE_LIVE', id: selectedShape.id, patch: { trackTickFontSize: Number(e.target.value) } })}
+                      className="flex-1 min-w-0"
+                    />
+                    <span className="w-7 text-right shrink-0">{selectedShape.trackTickFontSize ?? 10}px</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-xs mt-1.5">
+                    <span className="text-zinc-400 w-16 shrink-0">Line width</span>
+                    <input type="range" min={1} max={12} step={1}
+                      value={selectedShape.trackTickLineWidth ?? 2}
+                      onMouseDown={() => dispatch({ type: 'SNAPSHOT' })}
+                      onChange={(e) => dispatch({ type: 'UPDATE_SHAPE_LIVE', id: selectedShape.id, patch: { trackTickLineWidth: Number(e.target.value) } })}
+                      className="flex-1 min-w-0"
+                    />
+                    <span className="w-4 text-right shrink-0">{selectedShape.trackTickLineWidth ?? 2}</span>
+                  </label>
                 </div>
               </div>
             )

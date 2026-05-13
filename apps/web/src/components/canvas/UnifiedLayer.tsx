@@ -415,17 +415,20 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
           <Circle key={`fd-${i}`} x={d.x} y={d.y} radius={d.hw} {...surfaceFillProps} listening={false} />
         ))}
 
-        {/* Horse-length tick marks: red line across full track width + label at outer edge */}
+        {/* Horse-length tick marks */}
         {tickMarkers.map((m, i) => {
-          const labelW = m.label.length * 7 + 12
-          const labelH = 16
+          const tickColor = shape.trackTickColor ?? '#e94560'
+          const tickFontSize = shape.trackTickFontSize ?? 10
+          const tickLineWidth = shape.trackTickLineWidth ?? 2
+          const labelW = m.label.length * (tickFontSize * 0.6) + 12
+          const labelH = tickFontSize + 6
           return (
             <Group key={`tick-${i}`} listening={false}>
-              <Line points={[m.x1, m.y1, m.x2, m.y2]} stroke="#e94560" strokeWidth={2} />
+              <Line points={[m.x1, m.y1, m.x2, m.y2]} stroke={tickColor} strokeWidth={tickLineWidth} />
               <Group x={m.x2 - labelW / 2} y={m.y2 + 4}>
                 <Rect width={labelW} height={labelH} fill="rgba(0,0,0,0.72)" cornerRadius={2} />
                 <Text text={m.label} width={labelW} height={labelH}
-                  fill="#e94560" fontSize={10} fontStyle="bold" align="center" verticalAlign="middle" />
+                  fill={tickColor} fontSize={tickFontSize} fontStyle="bold" align="center" verticalAlign="middle" />
               </Group>
             </Group>
           )

@@ -79,6 +79,9 @@ export interface TrackShape {
   trackBorderColor?: string;
   trackBorderOpacity?: number;
   trackHorseInterval?: number;  // horse-length tick interval (0 = off), in trackUnit
+  trackTickColor?: string;      // tick line + label color (default #e94560)
+  trackTickFontSize?: number;   // label font size in px (default 10)
+  trackTickLineWidth?: number;  // tick line stroke width (default 2)
 }
 
 export interface RefImage {
