@@ -240,7 +240,7 @@ function RulerItem({ shape, selected, onDblClick }: { shape: TrackShape; selecte
 
         {/* Sequence markers */}
         {seqMarkers.map((m, i) => {
-          const seqFontSize = Math.max(8, fontSize - 2)
+          const seqFontSize = shape.rulerSeqFontSize ?? Math.max(8, fontSize - 2)
           const sw = m.label.length * seqFontSize * 0.6 + 12
           const sh = seqFontSize + 4
           return (

@@ -507,6 +507,16 @@ export function TrackPanel() {
                   />
                   <span className="w-7 text-right shrink-0">{Math.round((selectedShape.rulerSeqColorOpacity ?? 1) * 100)}%</span>
                 </label>
+                <label className="flex items-center gap-2 text-xs mt-1.5">
+                  <span className="text-zinc-400 w-16 shrink-0">Point size</span>
+                  <input type="range" min={6} max={100} step={1}
+                    value={selectedShape.rulerSeqFontSize ?? Math.max(8, (selectedShape.rulerFontSize ?? 12) - 2)}
+                    onMouseDown={() => dispatch({ type: 'SNAPSHOT' })}
+                    onChange={(e) => dispatch({ type: 'UPDATE_SHAPE_LIVE', id: selectedShape.id, patch: { rulerSeqFontSize: Number(e.target.value) } })}
+                    className="flex-1 min-w-0"
+                  />
+                  <span className="w-7 text-right shrink-0">{selectedShape.rulerSeqFontSize ?? Math.max(8, (selectedShape.rulerFontSize ?? 12) - 2)}px</span>
+                </label>
               </div>
             </div>
           )}
