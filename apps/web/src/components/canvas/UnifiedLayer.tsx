@@ -6,7 +6,7 @@ import type { TrackShape, RefImage } from '@say-it-so/core'
 import { useApp } from '../../context/AppContext'
 import { anchorsToPath } from '../../utils/pen'
 import { penPathLengthPx, samplePathAtRatio, formatRulerLength, intervalToPx } from '../../utils/ruler'
-import { sampleTrackPath, buildTrackPolygon, interpolateWidth, anchorHalfWidths, trackWidthToPx, formatTrackWidth, tangentAtRatio } from '../../utils/trackrace'
+import { sampleTrackPath, buildTrackPolygon, interpolateWidth, anchorHalfWidths, computeAnchorRatios, trackWidthToPx, formatTrackWidth, tangentAtRatio } from '../../utils/trackrace'
 
 function withAlpha(hex: string, alpha: number): string {
   if (!hex || hex === 'transparent') return 'transparent'
@@ -339,7 +339,6 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
   if (shape.visible === false || !shape.penAnchors || shape.penAnchors.length < 2) return null
 
   const anchors = shape.penAnchors
-  const anchorCount = anchors.length
   const interactive = !state.editingShapeId
   const unit = shape.trackUnit ?? 'm'
   const surface = shape.trackSurface ?? 'turf'
@@ -350,11 +349,14 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
   const samples = sampleTrackPath(anchors)
   if (samples.length < 2) return null
 
+  // Actual arc-length ratio at each anchor — anchors are NOT evenly spaced in arc-length
+  const anchorRatios = computeAnchorRatios(anchors)
+
   const avgBorderWidth = borderWidths.reduce((a, b) => a + b, 0) / borderWidths.length
 
   // Two-polygon approach: outer (border colour) sits behind inner (surface texture).
-  const borderPath = buildTrackPolygon(samples, widths, anchorCount, 'fill', avgBorderWidth)
-  const fillPath   = buildTrackPolygon(samples, widths, anchorCount, 'fill', 0)
+  const borderPath = buildTrackPolygon(samples, widths, anchorRatios, 'fill', avgBorderWidth)
+  const fillPath   = buildTrackPolygon(samples, widths, anchorRatios, 'fill', 0)
 
   // Discs stamped at each interior anchor fill corner gaps for sharp turns
   const borderDiscs = anchorHalfWidths(anchors, widths, avgBorderWidth)
@@ -377,7 +379,7 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
         const pt = samplePathAtRatio(anchors, ratio, false)
         const { tx, ty } = tangentAtRatio(samples, ratio)
         const nx = -ty, ny = tx
-        const hw = interpolateWidth(ratio, widths, anchorCount) / 2 + avgBorderWidth
+        const hw = interpolateWidth(ratio, widths, anchorRatios) / 2 + avgBorderWidth
         tickMarkers.push({
           x1: pt.x + nx * hw, y1: pt.y + ny * hw,
           x2: pt.x - nx * hw, y2: pt.y - ny * hw,

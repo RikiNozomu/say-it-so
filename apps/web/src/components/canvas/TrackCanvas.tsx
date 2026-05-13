@@ -36,7 +36,9 @@ export function TrackCanvas() {
   const shiftHeld = useRef(false)
   const spaceHeld = useRef(false)
   const penDragRef = useRef(false) // true while mouse is held during pen anchor placement
+  const midPanRef = useRef<{ clientX: number; clientY: number; stageX: number; stageY: number } | null>(null)
   const [spacePanning, setSpacePanning] = useState(false)
+  const [midPanning, setMidPanning] = useState(false)
   const [size, setSize] = useState({ w: 800, h: 600 })
   const [drawing, setDrawing] = useState<DrawingState | null>(null)
   const [penDraw, setPenDraw] = useState<PenDrawState | null>(null)
@@ -55,13 +57,18 @@ export function TrackCanvas() {
     return () => ro.disconnect()
   }, [])
 
-  // Prevent browser from intercepting Ctrl/Cmd+wheel (page zoom) so our pan handler runs
+  // Prevent browser from intercepting Ctrl/Cmd+wheel (page zoom) and middle-mouse auto-scroll
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
-    const prevent = (e: WheelEvent) => { if (e.ctrlKey || e.metaKey) e.preventDefault() }
-    el.addEventListener('wheel', prevent, { passive: false })
-    return () => el.removeEventListener('wheel', prevent)
+    const preventWheel = (e: WheelEvent) => { if (e.ctrlKey || e.metaKey) e.preventDefault() }
+    const preventMiddle = (e: MouseEvent) => { if (e.button === 1) e.preventDefault() }
+    el.addEventListener('wheel', preventWheel, { passive: false })
+    el.addEventListener('mousedown', preventMiddle)
+    return () => {
+      el.removeEventListener('wheel', preventWheel)
+      el.removeEventListener('mousedown', preventMiddle)
+    }
   }, [])
 
   // Keyboard shortcuts
@@ -70,9 +77,17 @@ export function TrackCanvas() {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
       if (e.code === 'Space') {
         e.preventDefault()
-        if (!spaceHeld.current) {
-          spaceHeld.current = true
-          setSpacePanning(true)
+        if (state.activePanel === 'horses') {
+          // Horse mode: space = toggle play/pause
+          dispatch({
+            type: 'SET_PLAYBACK_STATE',
+            state: state.playbackState === 'playing' ? 'paused' : 'playing',
+          })
+        } else {
+          if (!spaceHeld.current) {
+            spaceHeld.current = true
+            setSpacePanning(true)
+          }
         }
         return
       }
@@ -111,7 +126,7 @@ export function TrackCanvas() {
     window.addEventListener('keydown', handler)
     window.addEventListener('keyup', onKeyUp)
     return () => { window.removeEventListener('keydown', handler); window.removeEventListener('keyup', onKeyUp) }
-  }, [state.currentTime, state.duration, state.selectedShapeId, state.selectedRefImageId, state.editingShapeId, dispatch])
+  }, [state.currentTime, state.duration, state.selectedShapeId, state.selectedRefImageId, state.editingShapeId, state.activePanel, state.playbackState, dispatch])
 
   const handleWheel = useCallback(
     (e: Konva.KonvaEventObject<WheelEvent>) => {
@@ -192,18 +207,24 @@ export function TrackCanvas() {
     if (penDraw?.continuationShapeId) {
       const existing = state.trackShapes.find(s => s.id === penDraw.continuationShapeId)
       if (existing?.penAnchors) {
+        // anchors[0] is the startAnchor (= existing endpoint), so exclude it to avoid duplicates
         const merged = penDraw.continuationEnd === 'start'
-          ? [...anchors.slice().reverse(), ...existing.penAnchors]
-          : [...existing.penAnchors, ...anchors]
+          ? [...anchors.slice().reverse().slice(0, -1), ...existing.penAnchors]
+          : [...existing.penAnchors, ...anchors.slice(1)]
         // Extend parallel width arrays when continuing a trackrace
         let patch: Partial<typeof existing> = { penAnchors: merged, closed: effectiveClosed }
-        if (existing.type === 'trackrace' && existing.trackWidths) {
-          const defaultW = existing.trackWidths[0] ?? 20
+        if (existing.type === 'trackrace') {
+          const defaultW = (existing.trackWidths?.[0]) ?? 20 * state.trackScale
           const newWidths = anchors.slice(1).map(() => defaultW)
           const mergedWidths = penDraw.continuationEnd === 'start'
-            ? [...newWidths.reverse(), ...existing.trackWidths]
-            : [...existing.trackWidths, ...newWidths]
-          patch = { ...patch, trackWidths: mergedWidths }
+            ? [...[...newWidths].reverse(), ...( existing.trackWidths ?? existing.penAnchors.map(() => defaultW))]
+            : [...(existing.trackWidths ?? existing.penAnchors.map(() => defaultW)), ...newWidths]
+          const defaultBW = (existing.trackBorderWidths?.[0]) ?? 3 * state.trackScale
+          const newBorderWidths = anchors.slice(1).map(() => defaultBW)
+          const mergedBorderWidths = penDraw.continuationEnd === 'start'
+            ? [...[...newBorderWidths].reverse(), ...(existing.trackBorderWidths ?? existing.penAnchors.map(() => defaultBW))]
+            : [...(existing.trackBorderWidths ?? existing.penAnchors.map(() => defaultBW)), ...newBorderWidths]
+          patch = { ...patch, trackWidths: mergedWidths, trackBorderWidths: mergedBorderWidths }
         }
         dispatch({ type: 'SNAPSHOT' })
         dispatch({ type: 'UPDATE_SHAPE', id: penDraw.continuationShapeId, patch })
@@ -300,7 +321,17 @@ export function TrackCanvas() {
   }
 
   function handleMouseDown(e: Konva.KonvaEventObject<MouseEvent>) {
-    if (e.evt.button !== 0) return  // ignore middle (1) and right (2) mouse buttons
+    // Middle mouse button → start panning
+    if (e.evt.button === 1) {
+      e.evt.preventDefault()
+      const stage = stageRef.current
+      if (stage) {
+        midPanRef.current = { clientX: e.evt.clientX, clientY: e.evt.clientY, stageX: stage.x(), stageY: stage.y() }
+        setMidPanning(true)
+      }
+      return
+    }
+    if (e.evt.button !== 0) return  // ignore right mouse button
     if (spaceHeld.current) return   // space panning — Stage draggable handles it
     if (state.activePanel !== 'track') return
     // While editing a shape all canvas interaction is locked to the EditOverlay
@@ -353,6 +384,18 @@ export function TrackCanvas() {
 
   function handleMouseMove(e: Konva.KonvaEventObject<MouseEvent>) {
     shiftHeld.current = e.evt.shiftKey
+    // Middle mouse pan
+    if (midPanRef.current) {
+      const stage = stageRef.current
+      if (stage) {
+        const dx = e.evt.clientX - midPanRef.current.clientX
+        const dy = e.evt.clientY - midPanRef.current.clientY
+        const newX = midPanRef.current.stageX + dx
+        const newY = midPanRef.current.stageY + dy
+        stage.position({ x: newX, y: newY })
+        dispatch({ type: 'SET_PAN', x: newX, y: newY })
+      }
+    }
     const { x, y } = canvasCoords()
     setPreview({ x, y })
 
@@ -407,7 +450,12 @@ export function TrackCanvas() {
     }
   }
 
-  function handleMouseUp(_e: Konva.KonvaEventObject<MouseEvent>) {
+  function handleMouseUp(e: Konva.KonvaEventObject<MouseEvent>) {
+    if (e.evt.button === 1) {
+      midPanRef.current = null
+      setMidPanning(false)
+      return
+    }
     const wasPenDragging = penDragRef.current
     penDragRef.current = false
 
@@ -578,8 +626,8 @@ export function TrackCanvas() {
         onMouseUp={handleMouseUp}
         onDblClick={handleDblClick}
         style={{
-          cursor: spacePanning
-            ? 'grab'
+          cursor: midPanning || spacePanning
+            ? 'grabbing'
             : measureActive
             ? 'crosshair'
             : state.activeTool === 'select'

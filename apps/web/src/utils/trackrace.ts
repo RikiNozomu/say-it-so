@@ -93,22 +93,60 @@ export function tangentAtRatio(samples: SamplePoint[], ratio: number): { tx: num
   return { tx: samples[lo].tx, ty: samples[lo].ty }
 }
 
-export function interpolateWidth(t: number, widths: number[], anchorCount: number): number {
+// Compute the actual arc-length ratio (0..1) at each anchor position.
+export function computeAnchorRatios(anchors: PenAnchor[]): number[] {
+  const n = anchors.length
+  if (n === 0) return []
+  if (n === 1) return [0]
+  const cumLen: number[] = [0]
+  const STEPS = 20
+  for (let si = 0; si < n - 1; si++) {
+    const a = anchors[si]
+    const b = anchors[si + 1]
+    const cp1 = effectiveCpOut(a)
+    const cp2 = b.cpIn
+    let segLen = 0
+    let px = a.x, py = a.y
+    for (let j = 1; j <= STEPS; j++) {
+      const tt = j / STEPS, mt = 1 - tt
+      const bx = mt**3*a.x + 3*mt**2*tt*cp1.x + 3*mt*tt**2*cp2.x + tt**3*b.x
+      const by = mt**3*a.y + 3*mt**2*tt*cp1.y + 3*mt*tt**2*cp2.y + tt**3*b.y
+      segLen += Math.hypot(bx - px, by - py)
+      px = bx; py = by
+    }
+    cumLen.push(cumLen[si] + segLen)
+  }
+  const total = cumLen[n - 1]
+  return total > 0 ? cumLen.map(l => l / total) : cumLen.map((_, i) => i / (n - 1))
+}
+
+// Interpolate width at arc-length ratio t using actual anchor arc-length positions.
+export function interpolateWidth(t: number, widths: number[], anchorRatios: number[]): number {
   if (!widths || widths.length === 0) return 20
   if (widths.length === 1) return widths[0]
-  const segCount = anchorCount - 1
-  if (segCount <= 0) return widths[0]
-  const pos = t * segCount
-  const lo = Math.min(Math.floor(pos), segCount - 1)
-  const hi = Math.min(lo + 1, widths.length - 1)
-  const frac = pos - lo
-  return (widths[lo] ?? widths[widths.length - 1]) * (1 - frac) + (widths[hi] ?? widths[widths.length - 1]) * frac
+  const n = anchorRatios.length
+  if (n === 0) return widths[0]
+  if (t <= anchorRatios[0]) return widths[0] ?? widths[0]
+  if (t >= anchorRatios[n - 1]) return widths[widths.length - 1]
+  // Binary search for segment
+  let lo = 0, hi = n - 2
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1
+    if (anchorRatios[mid] <= t) lo = mid
+    else hi = mid - 1
+  }
+  const span = anchorRatios[lo + 1] - anchorRatios[lo]
+  if (span <= 0) return widths[lo] ?? widths[widths.length - 1]
+  const frac = (t - anchorRatios[lo]) / span
+  const w0 = widths[lo] ?? widths[widths.length - 1]
+  const w1 = widths[lo + 1] ?? widths[widths.length - 1]
+  return w0 * (1 - frac) + w1 * frac
 }
 
 export function buildTrackPolygon(
   samples: SamplePoint[],
   widths: number[],
-  anchorCount: number,
+  anchorRatios: number[],
   side: 'fill' | 'left' | 'right',
   borderExtra = 0,
 ): string {
@@ -118,7 +156,7 @@ export function buildTrackPolygon(
   const right: { x: number; y: number }[] = []
 
   for (const s of samples) {
-    const hw = interpolateWidth(s.t, widths, anchorCount) / 2 + borderExtra
+    const hw = interpolateWidth(s.t, widths, anchorRatios) / 2 + borderExtra
     const nx = -s.ty
     const ny = s.tx
     left.push({ x: s.x + nx * hw, y: s.y + ny * hw })
@@ -139,18 +177,18 @@ export function buildTrackPolygon(
   return pts.join(' ')
 }
 
-// Width of track at each intermediate anchor, used to size junction discs
+// Width of track at each intermediate anchor, used to size junction discs.
+// Uses widths[i] directly since we are exactly at anchor i.
 export function anchorHalfWidths(
   anchors: PenAnchor[],
   widths: number[],
   borderExtra: number,
 ): { x: number; y: number; hw: number }[] {
   const result: { x: number; y: number; hw: number }[] = []
-  const count = anchors.length
+  const last = widths.length - 1
   // Only interior anchors (not start/end) need gap-filling discs
-  for (let i = 1; i < count - 1; i++) {
-    const t = i / (count - 1)
-    const hw = interpolateWidth(t, widths, count) / 2 + borderExtra
+  for (let i = 1; i < anchors.length - 1; i++) {
+    const hw = (widths[i] ?? widths[last]) / 2 + borderExtra
     result.push({ x: anchors[i].x, y: anchors[i].y, hw })
   }
   return result

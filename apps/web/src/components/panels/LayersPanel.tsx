@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FiEye, FiEyeOff, FiLock, FiUnlock, FiTrash2 } from 'react-icons/fi'
+import { FiEye, FiEyeOff, FiLock, FiUnlock, FiTrash2, FiCopy } from 'react-icons/fi'
 import {
   TbVectorBezier2, TbRectangle, TbCircle,
   TbPolygon, TbPhoto, TbGripVertical, TbPencil, TbRuler, TbRoad,
@@ -142,6 +142,13 @@ export function LayersPanel() {
                 <button onClick={(e) => { e.stopPropagation(); dispatch({ type: 'UPDATE_SHAPE', id, patch: { locked: !locked } }); if (!locked && selected) dispatch({ type: 'SELECT_SHAPE', id: null }) }} className="p-0.5 hover:text-white shrink-0">
                   {locked ? <FiLock size={11} className="text-yellow-400" /> : <FiUnlock size={11} />}
                 </button>
+                <button onClick={(e) => {
+                  e.stopPropagation()
+                  dispatch({ type: 'SNAPSHOT' })
+                  dispatch({ type: 'ADD_SHAPE', shape: { ...shape, id: crypto.randomUUID(), order: shape.order + 0.5, name: shape.name ? `${shape.name} copy` : undefined } })
+                }} className="p-0.5 hover:text-blue-400 shrink-0">
+                  <FiCopy size={11} />
+                </button>
                 <button onClick={(e) => { e.stopPropagation(); dispatch({ type: 'REMOVE_SHAPE', id }) }} className="p-0.5 hover:text-red-400 shrink-0">
                   <FiTrash2 size={11} />
                 </button>
@@ -170,6 +177,13 @@ export function LayersPanel() {
               </button>
               <button onClick={(e) => { e.stopPropagation(); dispatch({ type: 'UPDATE_REF_IMAGE', id, patch: { locked: !img.locked } }); if (!img.locked && selected) dispatch({ type: 'SELECT_REF_IMAGE', id: null }) }} className="p-0.5 hover:text-white shrink-0">
                 {img.locked ? <FiLock size={11} className="text-yellow-400" /> : <FiUnlock size={11} />}
+              </button>
+              <button onClick={(e) => {
+                e.stopPropagation()
+                dispatch({ type: 'SNAPSHOT' })
+                dispatch({ type: 'ADD_REF_IMAGE', image: { ...img, id: crypto.randomUUID(), order: img.order + 0.5, x: img.x + 10, y: img.y + 10, name: img.name ? `${img.name} copy` : undefined } })
+              }} className="p-0.5 hover:text-blue-400 shrink-0">
+                <FiCopy size={11} />
               </button>
               <button onClick={(e) => { e.stopPropagation(); dispatch({ type: 'REMOVE_REF_IMAGE', id }) }} className="p-0.5 hover:text-red-400 shrink-0">
                 <FiTrash2 size={11} />

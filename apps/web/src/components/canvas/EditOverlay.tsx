@@ -79,6 +79,7 @@ export function EditOverlay({
   const { state, dispatch } = useApp()
   const dragRef = useRef<DragState | null>(null)
   const anchorsRef = useRef<PenAnchor[]>([])
+  const shapeRef = useRef<typeof state.trackShapes[0] | null>(null)
   const [closingHint, setClosingHint] = useState<number | null>(null)
 
   // Delete/Backspace: remove the selected anchor
@@ -89,8 +90,14 @@ export function EditOverlay({
       const ancs = anchorsRef.current
       if (ancs.length <= 2) return
       const idx = state.selectedAnchorIdx
+      const sh = shapeRef.current
+      const patch: Record<string, unknown> = { penAnchors: [...ancs.slice(0, idx), ...ancs.slice(idx + 1)] }
+      if (sh?.type === 'trackrace') {
+        if (sh.trackWidths) patch.trackWidths = [...sh.trackWidths.slice(0, idx), ...sh.trackWidths.slice(idx + 1)]
+        if (sh.trackBorderWidths) patch.trackBorderWidths = [...sh.trackBorderWidths.slice(0, idx), ...sh.trackBorderWidths.slice(idx + 1)]
+      }
       dispatch({ type: 'SNAPSHOT' })
-      dispatch({ type: 'UPDATE_SHAPE', id: state.editingShapeId!, patch: { penAnchors: [...ancs.slice(0, idx), ...ancs.slice(idx + 1)] } })
+      dispatch({ type: 'UPDATE_SHAPE', id: state.editingShapeId!, patch: patch as never })
       dispatch({ type: 'SELECT_ANCHOR', idx: null })
     }
     window.addEventListener('keydown', onKey)
@@ -104,8 +111,9 @@ export function EditOverlay({
   const isRuler = shape.type === 'ruler'
   const isTrackRace = shape.type === 'trackrace'
 
-  // Keep ref in sync
+  // Keep refs in sync
   anchorsRef.current = shape.penAnchors
+  shapeRef.current = shape
 
   const z = state.zoom
   const hs = 6 / z    // anchor half-size (screen px)
@@ -113,13 +121,13 @@ export function EditOverlay({
   const SNAP = 14 / z // click tolerance
   const MOVE_THRESHOLD = 4 / z
 
-  function save(anchors: PenAnchor[]) {
+  function save(anchors: PenAnchor[], extraPatch?: Record<string, unknown>) {
     dispatch({ type: 'SNAPSHOT' })
-    dispatch({ type: 'UPDATE_SHAPE', id: shape!.id, patch: { penAnchors: anchors } })
+    dispatch({ type: 'UPDATE_SHAPE', id: shape!.id, patch: { penAnchors: anchors, ...extraPatch } })
   }
 
-  function live(anchors: PenAnchor[]) {
-    dispatch({ type: 'UPDATE_SHAPE_LIVE', id: shape!.id, patch: { penAnchors: anchors } })
+  function live(anchors: PenAnchor[], extraPatch?: Record<string, unknown>) {
+    dispatch({ type: 'UPDATE_SHAPE_LIVE', id: shape!.id, patch: { penAnchors: anchors, ...extraPatch } })
   }
 
   // ── click actions ──────────────────────────────────────────────────────────
@@ -205,7 +213,25 @@ export function EditOverlay({
     const afterIdx = shape!.closed ? (insertIdx + 1) % na.length : insertIdx + 1
     if (na[afterIdx]) na[afterIdx] = { ...na[afterIdx], cpIn: sp.right.cpIn }
 
-    live(na)
+    const widthPatch: Record<string, unknown> = {}
+    const sh = shapeRef.current
+    if (sh?.type === 'trackrace') {
+      if (sh.trackWidths && sh.trackWidths.length > 0) {
+        const ws = sh.trackWidths
+        const wA = ws[bestSeg] ?? ws[ws.length - 1]
+        const wB = ws[bestSeg + 1] ?? ws[ws.length - 1]
+        const newW = wA * (1 - bestT) + wB * bestT
+        widthPatch.trackWidths = [...ws.slice(0, insertIdx), newW, ...ws.slice(insertIdx)]
+      }
+      if (sh.trackBorderWidths && sh.trackBorderWidths.length > 0) {
+        const bws = sh.trackBorderWidths
+        const bwA = bws[bestSeg] ?? bws[bws.length - 1]
+        const bwB = bws[bestSeg + 1] ?? bws[bws.length - 1]
+        const newBW = bwA * (1 - bestT) + bwB * bestT
+        widthPatch.trackBorderWidths = [...bws.slice(0, insertIdx), newBW, ...bws.slice(insertIdx)]
+      }
+    }
+    live(na, widthPatch)
     anchorsRef.current = na
     dragRef.current = { kind: 'new-anchor', idx: insertIdx, origAnchor: { ...newAnc }, startX: mx, startY: my, altKey, hasMoved: false }
   }
