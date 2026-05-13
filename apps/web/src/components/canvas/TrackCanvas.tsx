@@ -55,6 +55,15 @@ export function TrackCanvas() {
     return () => ro.disconnect()
   }, [])
 
+  // Prevent browser from intercepting Ctrl/Cmd+wheel (page zoom) so our pan handler runs
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const prevent = (e: WheelEvent) => { if (e.ctrlKey || e.metaKey) e.preventDefault() }
+    el.addEventListener('wheel', prevent, { passive: false })
+    return () => el.removeEventListener('wheel', prevent)
+  }, [])
+
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
