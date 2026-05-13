@@ -1,10 +1,11 @@
 import { useRef, useState, useCallback } from 'react'
+import { FiEye, FiEyeOff } from 'react-icons/fi'
 import type { Keyframe } from '@say-it-so/core'
 import { useApp } from '../../context/AppContext'
 
 const LANE_H = 28
 const HEADER_H = 24
-const LABEL_W = 120
+const LABEL_W = 140
 
 interface ContextMenu {
   horseId: string
@@ -113,6 +114,7 @@ function HorseLane({
 }) {
   const { state, dispatch } = useApp()
   const laneRef = useRef<HTMLDivElement>(null)
+  const isSelected = state.selectedHorseId === horseId
 
   return (
     <div
@@ -120,12 +122,24 @@ function HorseLane({
       className="absolute left-0 right-0 border-b border-border/30"
       style={{ top, height: LANE_H }}
     >
-      {/* Label */}
+      {/* Label — click to select horse */}
       <div
-        className="absolute left-0 top-0 bottom-0 flex items-center px-2 border-r border-border bg-panel z-10 truncate text-xs"
+        className={`absolute left-0 top-0 bottom-0 flex items-center border-r border-border z-10 text-xs cursor-pointer select-none transition-colors ${
+          isSelected ? 'bg-accent/20' : 'bg-panel hover:bg-border/40'
+        }`}
         style={{ width: labelWidth }}
+        onClick={() => dispatch({ type: 'SELECT_HORSE', id: horseId })}
       >
-        {label}
+        <span className="flex-1 truncate px-2">{label}</span>
+        {isSelected && (
+          <button
+            className="shrink-0 mr-1.5 p-0.5 rounded text-zinc-300 hover:text-white transition-colors"
+            title={state.showMotionPaths ? 'Hide path' : 'Show path'}
+            onClick={(e) => { e.stopPropagation(); dispatch({ type: 'TOGGLE_MOTION_PATHS' }) }}
+          >
+            {state.showMotionPaths ? <FiEye size={11} /> : <FiEyeOff size={11} />}
+          </button>
+        )}
       </div>
 
       {/* Track area */}
