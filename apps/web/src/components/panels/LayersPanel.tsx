@@ -139,7 +139,7 @@ export function LayersPanel() {
                 <button onClick={(e) => { e.stopPropagation(); dispatch({ type: 'UPDATE_SHAPE', id, patch: { visible: !visible } }) }} className="p-0.5 hover:text-white shrink-0">
                   {visible ? <FiEye size={11} /> : <FiEyeOff size={11} className="text-zinc-600" />}
                 </button>
-                <button onClick={(e) => { e.stopPropagation(); dispatch({ type: 'UPDATE_SHAPE', id, patch: { locked: !locked } }) }} className="p-0.5 hover:text-white shrink-0">
+                <button onClick={(e) => { e.stopPropagation(); dispatch({ type: 'UPDATE_SHAPE', id, patch: { locked: !locked } }); if (!locked && selected) dispatch({ type: 'SELECT_SHAPE', id: null }) }} className="p-0.5 hover:text-white shrink-0">
                   {locked ? <FiLock size={11} className="text-yellow-400" /> : <FiUnlock size={11} />}
                 </button>
                 <button onClick={(e) => { e.stopPropagation(); dispatch({ type: 'REMOVE_SHAPE', id }) }} className="p-0.5 hover:text-red-400 shrink-0">
@@ -168,7 +168,7 @@ export function LayersPanel() {
               <button onClick={(e) => { e.stopPropagation(); dispatch({ type: 'UPDATE_REF_IMAGE', id, patch: { visible: img.visible === false ? true : false } }) }} className="p-0.5 hover:text-white shrink-0">
                 {img.visible === false ? <FiEyeOff size={11} className="text-zinc-600" /> : <FiEye size={11} />}
               </button>
-              <button onClick={(e) => { e.stopPropagation(); dispatch({ type: 'UPDATE_REF_IMAGE', id, patch: { locked: !img.locked } }) }} className="p-0.5 hover:text-white shrink-0">
+              <button onClick={(e) => { e.stopPropagation(); dispatch({ type: 'UPDATE_REF_IMAGE', id, patch: { locked: !img.locked } }); if (!img.locked && selected) dispatch({ type: 'SELECT_REF_IMAGE', id: null }) }} className="p-0.5 hover:text-white shrink-0">
                 {img.locked ? <FiLock size={11} className="text-yellow-400" /> : <FiUnlock size={11} />}
               </button>
               <button onClick={(e) => { e.stopPropagation(); dispatch({ type: 'REMOVE_REF_IMAGE', id }) }} className="p-0.5 hover:text-red-400 shrink-0">
