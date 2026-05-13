@@ -183,9 +183,10 @@ function RulerItem({ shape, selected, onDblClick }: { shape: TrackShape; selecte
   const endLabel   = formatRulerLength(lengthPx, unit, state.trackScale)
 
   const fontSize = shape.rulerFontSize ?? 12
-  const labelH = fontSize + 8
-  const startLabelW = startLabel.length * 7 + 14
-  const endLabelW   = endLabel.length   * 7 + 14
+  const labelH = fontSize + 4
+  const charW = fontSize * 0.6
+  const startLabelW = startLabel.length * charW + 12
+  const endLabelW   = endLabel.length   * charW + 12
   const labelTextColor = withAlpha(shape.rulerLabelColor ?? '#ffffff', shape.rulerLabelColorOpacity ?? 1)
   const labelBgColor   = withAlpha(shape.rulerLabelBg    ?? '#000000', shape.rulerLabelBgOpacity    ?? 0.75)
 
@@ -239,14 +240,15 @@ function RulerItem({ shape, selected, onDblClick }: { shape: TrackShape; selecte
 
         {/* Sequence markers */}
         {seqMarkers.map((m, i) => {
-          const sw = m.label.length * 6 + 10
-          const sh = 16
+          const seqFontSize = Math.max(8, fontSize - 2)
+          const sw = m.label.length * seqFontSize * 0.6 + 12
+          const sh = seqFontSize + 4
           return (
             <Group key={`seq-${i}`} listening={false}>
-              <Circle x={m.x} y={m.y} radius={4} fill={seqColor} />
-              <Group x={m.x - sw / 2} y={m.y + 7}>
+              <Circle x={m.x} y={m.y} radius={Math.max(3, fontSize * 0.3)} fill={seqColor} />
+              <Group x={m.x - sw / 2} y={m.y + fontSize * 0.4}>
                 <Rect width={sw} height={sh} fill={labelBgColor} cornerRadius={2} />
-                <Text text={m.label} width={sw} height={sh} fill={seqColor} fontSize={Math.max(8, fontSize - 2)} fontStyle="bold" align="center" verticalAlign="middle" />
+                <Text text={m.label} width={sw} height={sh} fill={seqColor} fontSize={seqFontSize} fontStyle="bold" align="center" verticalAlign="middle" />
               </Group>
             </Group>
           )

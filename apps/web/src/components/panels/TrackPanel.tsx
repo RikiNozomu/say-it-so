@@ -336,7 +336,7 @@ export function TrackPanel() {
               <label className="flex items-center gap-2 text-xs">
                 <span className="text-zinc-400 w-16 shrink-0">Width</span>
                 <input
-                  type="range" min={1} max={20}
+                  type="range" min={1} max={100}
                   value={selectedShape.strokeWidth}
                   onMouseDown={() => dispatch({ type: 'SNAPSHOT' })}
                   onChange={(e) => dispatch({ type: 'UPDATE_SHAPE_LIVE', id: selectedShape.id, patch: { strokeWidth: Number(e.target.value) } })}
@@ -424,7 +424,7 @@ export function TrackPanel() {
               <label className="flex items-center gap-2 text-xs">
                 <span className="text-zinc-400 w-16 shrink-0">Font size</span>
                 <input
-                  type="range" min={8} max={32} step={1}
+                  type="range" min={8} max={100} step={1}
                   value={selectedShape.rulerFontSize ?? 12}
                   onMouseDown={() => dispatch({ type: 'SNAPSHOT' })}
                   onChange={(e) => dispatch({ type: 'UPDATE_SHAPE_LIVE', id: selectedShape.id, patch: { rulerFontSize: Number(e.target.value) } })}
