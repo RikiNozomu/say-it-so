@@ -34,7 +34,9 @@ export function TrackCanvas() {
   const stageRef = useRef<Konva.Stage | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const shiftHeld = useRef(false)
+  const spaceHeld = useRef(false)
   const penDragRef = useRef(false) // true while mouse is held during pen anchor placement
+  const [spacePanning, setSpacePanning] = useState(false)
   const [size, setSize] = useState({ w: 800, h: 600 })
   const [drawing, setDrawing] = useState<DrawingState | null>(null)
   const [penDraw, setPenDraw] = useState<PenDrawState | null>(null)
@@ -57,12 +59,13 @@ export function TrackCanvas() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-      if (e.code === 'Space' && state.activePanel !== 'track') {
+      if (e.code === 'Space') {
         e.preventDefault()
-        dispatch({
-          type: 'SET_PLAYBACK_STATE',
-          state: state.playbackState === 'playing' ? 'paused' : 'playing',
-        })
+        if (!spaceHeld.current) {
+          spaceHeld.current = true
+          setSpacePanning(true)
+        }
+        return
       }
       if (e.code === 'ArrowLeft')
         dispatch({ type: 'SET_CURRENT_TIME', time: Math.max(0, state.currentTime - 1) })
@@ -89,17 +92,34 @@ export function TrackCanvas() {
         dispatch({ type: 'REDO' })
       }
     }
-    const onKeyUp = (e: KeyboardEvent) => { if (e.key === 'Shift') shiftHeld.current = false }
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') shiftHeld.current = false
+      if (e.code === 'Space') {
+        spaceHeld.current = false
+        setSpacePanning(false)
+      }
+    }
     window.addEventListener('keydown', handler)
     window.addEventListener('keyup', onKeyUp)
     return () => { window.removeEventListener('keydown', handler); window.removeEventListener('keyup', onKeyUp) }
-  }, [state.playbackState, state.currentTime, state.duration, state.selectedShapeId, state.selectedRefImageId, dispatch])
+  }, [state.currentTime, state.duration, state.selectedShapeId, state.selectedRefImageId, state.editingShapeId, dispatch])
 
   const handleWheel = useCallback(
     (e: Konva.KonvaEventObject<WheelEvent>) => {
       e.evt.preventDefault()
       const stage = stageRef.current
       if (!stage) return
+
+      if (e.evt.ctrlKey || e.evt.metaKey) {
+        // Ctrl/Cmd + wheel → pan
+        const newX = stage.x() - e.evt.deltaX
+        const newY = stage.y() - e.evt.deltaY
+        stage.position({ x: newX, y: newY })
+        dispatch({ type: 'SET_PAN', x: newX, y: newY })
+        return
+      }
+
+      // Plain wheel → zoom around pointer
       const oldScale = stage.scaleX()
       const pointer = stage.getPointerPosition()!
       const origin = {
@@ -272,6 +292,7 @@ export function TrackCanvas() {
 
   function handleMouseDown(e: Konva.KonvaEventObject<MouseEvent>) {
     if (e.evt.button !== 0) return  // ignore middle (1) and right (2) mouse buttons
+    if (spaceHeld.current) return   // space panning — Stage draggable handles it
     if (state.activePanel !== 'track') return
     // While editing a shape all canvas interaction is locked to the EditOverlay
     if (state.editingShapeId) return
@@ -524,7 +545,7 @@ export function TrackCanvas() {
   }
 
   const measureActive = state.activeTool === 'measure'
-  const isDraggableStage = state.activeTool === 'select'
+  const isDraggableStage = state.activeTool === 'select' || spacePanning
   const isDrawing = !!drawing || !!penDraw
 
   return (
@@ -548,9 +569,11 @@ export function TrackCanvas() {
         onMouseUp={handleMouseUp}
         onDblClick={handleDblClick}
         style={{
-          cursor: measureActive
+          cursor: spacePanning
+            ? 'grab'
+            : measureActive
             ? 'crosshair'
-            : isDraggableStage
+            : state.activeTool === 'select'
             ? 'grab'
             : isDrawing
             ? 'crosshair'
