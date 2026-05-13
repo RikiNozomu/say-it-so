@@ -73,7 +73,7 @@ function ShapeItem({ shape, selected, onDblClick }: { shape: TrackShape; selecte
   const fillColor   = withAlpha(shape.fill, shape.fillAlpha ?? 1)
   // While ANY shape is being edited, the whole UnifiedLayer goes non-interactive
   // so the EditOverlay layer above it receives all pointer events.
-  const interactive = !state.editingShapeId
+  const interactive = !state.editingShapeId && shape.locked !== true
   const common = {
     stroke: strokeColor,
     strokeWidth: shape.strokeWidth,
@@ -100,9 +100,9 @@ function ShapeItem({ shape, selected, onDblClick }: { shape: TrackShape; selecte
       <Group
         ref={groupRef}
         draggable={interactive && shape.locked !== true && state.activePanel === 'track'}
-        listening={interactive}
+        listening={interactive && shape.locked !== true}
         opacity={shape.opacity ?? 1}
-        onClick={() => { if (state.activePanel === 'track' && !penDrawing && shape.locked !== true) dispatch({ type: 'SELECT_SHAPE', id: shape.id }) }}
+        onClick={() => { if (state.activePanel === 'track' && !penDrawing) dispatch({ type: 'SELECT_SHAPE', id: shape.id }) }}
         onDblClick={() => { if (state.activePanel === 'track' && !penDrawing) onDblClick?.() }}
         onDragEnd={bakeTransform}
         onTransformEnd={bakeTransform}
@@ -211,9 +211,9 @@ function RulerItem({ shape, selected, onDblClick }: { shape: TrackShape; selecte
       <Group
         ref={groupRef}
         draggable={interactive && shape.locked !== true && state.activePanel === 'track'}
-        listening={interactive}
+        listening={interactive && shape.locked !== true}
         opacity={shape.opacity ?? 1}
-        onClick={() => { if (state.activePanel === 'track' && !penDrawing && shape.locked !== true) dispatch({ type: 'SELECT_SHAPE', id: shape.id }) }}
+        onClick={() => { if (state.activePanel === 'track' && !penDrawing) dispatch({ type: 'SELECT_SHAPE', id: shape.id }) }}
         onDblClick={() => { if (state.activePanel === 'track' && !penDrawing) onDblClick?.() }}
         onDragEnd={bakeTransform}
         onTransformEnd={bakeTransform}
@@ -402,9 +402,9 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
       <Group
         ref={groupRef}
         draggable={interactive && shape.locked !== true && state.activePanel === 'track'}
-        listening={interactive}
+        listening={interactive && shape.locked !== true}
         opacity={shape.opacity ?? 1}
-        onClick={() => { if (state.activePanel === 'track' && !penDrawing && shape.locked !== true) dispatch({ type: 'SELECT_SHAPE', id: shape.id }) }}
+        onClick={() => { if (state.activePanel === 'track' && !penDrawing) dispatch({ type: 'SELECT_SHAPE', id: shape.id }) }}
         onDblClick={() => { if (state.activePanel === 'track' && !penDrawing) onDblClick?.() }}
         onDragEnd={bakeTransform}
         onTransformEnd={bakeTransform}
@@ -506,8 +506,8 @@ function ImageItem({ img, selected }: { img: RefImage; selected: boolean }) {
         opacity={img.opacity}
         rotation={img.rotation ?? 0}
         draggable={!img.locked && state.activePanel === 'track' && !state.editingShapeId}
-        listening={!state.editingShapeId}
-        onClick={() => { if (state.activePanel === 'track' && !state.editingShapeId && !penDrawing && !img.locked) dispatch({ type: 'SELECT_REF_IMAGE', id: img.id }) }}
+        listening={!state.editingShapeId && !img.locked}
+        onClick={() => { if (state.activePanel === 'track' && !state.editingShapeId && !penDrawing) dispatch({ type: 'SELECT_REF_IMAGE', id: img.id }) }}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
       />
