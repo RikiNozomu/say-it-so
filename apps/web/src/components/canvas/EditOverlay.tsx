@@ -170,7 +170,7 @@ export function EditOverlay({
       const a = ancs[i]
       if (Math.abs(mx - a.x) <= hs && Math.abs(my - a.y) <= hs) {
         dispatch({ type: 'SELECT_ANCHOR', idx: i })
-        dragRef.current = { kind: 'anchor', idx: i, origAnchor: { ...a }, startX: mx, startY: my, altKey, hasMoved: false }
+        dragRef.current = { kind: 'anchor', idx: i, origAnchor: { ...a, cpIn: { ...a.cpIn }, cpOut: { ...a.cpOut } }, startX: mx, startY: my, altKey, hasMoved: false }
         return
       }
     }
@@ -184,6 +184,15 @@ export function EditOverlay({
       if (res.dist < bestDist) { bestDist = res.dist; bestSeg = i; bestT = res.t; bestX = res.x; bestY = res.y }
     }
     if (bestDist > SNAP) return
+
+    // If the nearest point on the segment is very close to an existing anchor,
+    // the user probably missed the anchor square — grab that anchor instead of inserting.
+    const nearIdx = ancs.findIndex(a => Math.hypot(bestX - a.x, bestY - a.y) < hs * 2.5)
+    if (nearIdx >= 0) {
+      dispatch({ type: 'SELECT_ANCHOR', idx: nearIdx })
+      dragRef.current = { kind: 'anchor', idx: nearIdx, origAnchor: { ...ancs[nearIdx], cpIn: { ...ancs[nearIdx].cpIn }, cpOut: { ...ancs[nearIdx].cpOut } }, startX: mx, startY: my, altKey, hasMoved: false }
+      return
+    }
 
     // Split and insert
     const a0 = all[bestSeg], a1 = all[(bestSeg + 1) % ancs.length]
