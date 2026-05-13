@@ -131,10 +131,12 @@ function fixEdgeCorners(
       const dot = n1x * n2x + n1y * n2y
 
       if (dot < CORNER_DOT) {
-        // Cross product of tangents: positive = turning left (in screen coords: turning CW)
+        // Cross product of tangents.
+        // In screen coordinates (Y axis points down), the left-normal (nx=-ty, ny=tx)
+        // points toward the visual INSIDE of the bend when cross > 0.
+        // So: left side is outside when cross < 0; right side is outside when cross > 0.
         const cross = samples[k].tx * samples[k + 1].ty - samples[k].ty * samples[k + 1].tx
-        // left side is outside when cross > 0; right side is outside when cross < 0
-        const isOutside = leftSide ? (cross > 0) : (cross < 0)
+        const isOutside = leftSide ? (cross < 0) : (cross > 0)
 
         const miter = lineLine(
           pts[k],     { x: samples[k].tx,     y: samples[k].ty },
