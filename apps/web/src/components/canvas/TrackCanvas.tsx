@@ -603,7 +603,7 @@ export function TrackCanvas() {
   }
 
   const measureActive = state.activeTool === 'measure'
-  const isDraggableStage = state.activeTool === 'select' || spacePanning
+  const isDraggableStage = spacePanning || (state.activePanel === 'track' && state.activeTool === 'select')
   const isDrawing = !!drawing || !!penDraw
 
   return (
