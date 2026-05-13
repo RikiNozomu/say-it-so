@@ -6,7 +6,7 @@ import type { TrackShape, RefImage } from '@say-it-so/core'
 import { useApp } from '../../context/AppContext'
 import { anchorsToPath } from '../../utils/pen'
 import { penPathLengthPx, samplePathAtRatio, formatRulerLength, intervalToPx } from '../../utils/ruler'
-import { sampleTrackPath, buildTrackPolygon, interpolateWidth, trackWidthToPx, formatTrackWidth } from '../../utils/trackrace'
+import { sampleTrackPath, buildTrackPolygon, interpolateWidth, anchorHalfWidths, trackWidthToPx, formatTrackWidth } from '../../utils/trackrace'
 
 function withAlpha(hex: string, alpha: number): string {
   if (!hex || hex === 'transparent') return 'transparent'
@@ -351,9 +351,12 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
   const avgBorderWidth = borderWidths.reduce((a, b) => a + b, 0) / borderWidths.length
 
   // Two-polygon approach: outer (border colour) sits behind inner (surface texture).
-  // Both use the same miter-join polygon builder so corners match cleanly.
   const borderPath = buildTrackPolygon(samples, widths, anchorCount, 'fill', avgBorderWidth)
   const fillPath   = buildTrackPolygon(samples, widths, anchorCount, 'fill', 0)
+
+  // Discs stamped at each interior anchor fill corner gaps for sharp turns
+  const borderDiscs = anchorHalfWidths(anchors, widths, avgBorderWidth)
+  const fillDiscs   = anchorHalfWidths(anchors, widths, 0)
 
   const textureImage = surface === 'turf' ? turfImage : dirtImage
   const surfaceFillProps = textureImage
@@ -397,11 +400,17 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
         shadowBlur={selected ? 8 : 0}
         shadowColor="#e94560"
       >
-        {/* Border: outer polygon filled with border colour */}
+        {/* Border: outer polygon + discs at each interior anchor to fill corner gaps */}
         <Path data={borderPath} fill={borderColor} stroke="transparent" strokeWidth={0} listening={true} hitStrokeWidth={0} />
+        {borderDiscs.map((d, i) => (
+          <Circle key={`bd-${i}`} x={d.x} y={d.y} radius={d.hw} fill={borderColor} listening={false} />
+        ))}
 
-        {/* Surface: inner polygon filled with texture (drawn on top of border) */}
+        {/* Surface: inner polygon + discs drawn on top of border */}
         <Path data={fillPath} {...surfaceFillProps} stroke="transparent" strokeWidth={0} listening={false} />
+        {fillDiscs.map((d, i) => (
+          <Circle key={`fd-${i}`} x={d.x} y={d.y} radius={d.hw} {...surfaceFillProps} listening={false} />
+        ))}
 
         {/* Horse-length tick marks */}
         {tickMarkers.map((m, i) => (
