@@ -143,6 +143,7 @@ export function EditOverlay({
   // ── mouse events ──────────────────────────────────────────────────────────
 
   function handleMouseDown(e: Konva.KonvaEventObject<MouseEvent>) {
+    if (e.evt.button !== 0) return  // ignore middle and right mouse buttons
     const stage = e.target.getStage()
     if (!stage) return
     const { x: mx, y: my } = canvasPos(stage)

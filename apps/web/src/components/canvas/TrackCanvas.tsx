@@ -271,6 +271,7 @@ export function TrackCanvas() {
   }
 
   function handleMouseDown(e: Konva.KonvaEventObject<MouseEvent>) {
+    if (e.evt.button !== 0) return  // ignore middle (1) and right (2) mouse buttons
     if (state.activePanel !== 'track') return
     // While editing a shape all canvas interaction is locked to the EditOverlay
     if (state.editingShapeId) return
