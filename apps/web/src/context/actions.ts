@@ -39,7 +39,7 @@ export type Action =
   | { type: 'UPDATE_KEYFRAME_XY'; horseId: string; index: number; x: number; y: number }
   | { type: 'UPDATE_KEYFRAME_XY_LIVE'; horseId: string; index: number; x: number; y: number }
   | { type: 'REMOVE_KEYFRAME'; horseId: string; index: number }
-  | { type: 'TOGGLE_MOTION_PATHS' }
+  | { type: 'TOGGLE_MOTION_PATHS'; horseId: string }
 
   // track shapes
   | { type: 'ADD_SHAPE'; shape: TrackShape }

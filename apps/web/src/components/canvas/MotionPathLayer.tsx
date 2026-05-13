@@ -57,21 +57,28 @@ export function MotionPathLayer() {
   const stageRef  = useRef<Konva.Stage | null>(null)
   const [activeKfIdx, setActiveKfIdx] = useState<number | null>(null)
 
-  if (state.activePanel !== 'horses' || !state.showMotionPaths) return null
+  if (state.activePanel !== 'horses') return null
 
-  const selectedHorse = state.horses.find(h => h.id === state.selectedHorseId)
-  if (!selectedHorse || selectedHorse.keyframes.length < 1) return null
+  const visibleHorses = state.horses.filter(h =>
+    state.motionPathHorseIds.includes(h.id) && h.keyframes.length >= 1
+  )
+  if (visibleHorses.length === 0) return null
 
-  horseRef.current = selectedHorse
-  const selectedHorseId = selectedHorse.id
+  // Selected horse — used for handle editing
+  const selectedHorse = visibleHorses.find(h => h.id === state.selectedHorseId) ?? null
+  if (selectedHorse) horseRef.current = selectedHorse
+  const selectedHorseId = selectedHorse?.id ?? null
 
   const z = state.zoom
   const hs = 5 / z
   const cr = 4 / z
 
-  const sorted = [...selectedHorse.keyframes]
-    .map((kf, i) => ({ kf, origIdx: i }))
-    .sort((a, b) => a.kf.time - b.kf.time)
+  // sorted keyframes for the selected (editable) horse
+  const sorted = selectedHorse
+    ? [...selectedHorse.keyframes]
+        .map((kf, i) => ({ kf, origIdx: i }))
+        .sort((a, b) => a.kf.time - b.kf.time)
+    : []
 
   // ── window-level drag handlers (attached on mousedown) ────────────────────
 
@@ -156,6 +163,7 @@ export function MotionPathLayer() {
 
   function handleMouseDown(e: Konva.KonvaEventObject<MouseEvent>) {
     if (e.evt.button !== 0) return
+    if (!selectedHorseId) return   // no editable horse
     const stage = e.target.getStage()
     if (!stage) return
     const { x: mx, y: my } = canvasPos(stage)
@@ -190,64 +198,61 @@ export function MotionPathLayer() {
 
   // ── render ────────────────────────────────────────────────────────────────
 
-  const kfs = sorted.map(s => s.kf)
-  const pathD = bezierPathD(kfs)
-
   return (
     <Layer onMouseDown={handleMouseDown}>
-      {/* Full-coverage rect so Layer receives mousedown for hit detection */}
       <Rect x={-100000} y={-100000} width={200000} height={200000} fill="transparent" listening={true} />
 
-      {/* Dotted bezier path */}
-      {pathD && (
-        <Path
-          data={pathD}
-          stroke="#e94560"
-          strokeWidth={1.5 / z}
-          dash={[6 / z, 4 / z]}
-          fill="transparent"
-          listening={false}
-          opacity={0.8}
-        />
-      )}
-
-      {sorted.map(({ kf, origIdx }) => {
-        const out = cpOut(kf)
-        const inn = cpIn(kf)
-        const hasCpOut = kf.cpOut && (kf.cpOut.x !== kf.x || kf.cpOut.y !== kf.y)
-        const hasCpIn  = kf.cpIn  && (kf.cpIn.x  !== kf.x || kf.cpIn.y  !== kf.y)
-        const isActive = activeKfIdx === origIdx
+      {/* Render each visible horse */}
+      {visibleHorses.map(horse => {
+        const isEditable = horse.id === selectedHorseId
+        const horseSorted = [...horse.keyframes].sort((a, b) => a.time - b.time)
+        const pathD = bezierPathD(horseSorted)
 
         return (
-          <React.Fragment key={origIdx}>
-            {/* Handle guide lines */}
-            {(hasCpOut || isActive) && (
-              <Line points={[kf.x, kf.y, out.x, out.y]}
-                stroke="#e94560" strokeWidth={1 / z} opacity={0.5} listening={false} dash={[3/z, 2/z]} />
-            )}
-            {(hasCpIn || isActive) && (
-              <Line points={[kf.x, kf.y, inn.x, inn.y]}
-                stroke="#e94560" strokeWidth={1 / z} opacity={0.5} listening={false} dash={[3/z, 2/z]} />
+          <React.Fragment key={horse.id}>
+            {/* Dotted bezier path */}
+            {pathD && (
+              <Path data={pathD} stroke="#e94560" strokeWidth={1.5 / z} dash={[6 / z, 4 / z]}
+                fill="transparent" listening={false} opacity={isEditable ? 0.9 : 0.4} />
             )}
 
-            {/* cpOut handle */}
-            {(hasCpOut || isActive) && (
-              <Circle x={out.x} y={out.y} radius={cr}
-                fill="#ff6b8a" stroke="#fff" strokeWidth={0.5 / z} listening={false} />
-            )}
-            {/* cpIn handle */}
-            {(hasCpIn || isActive) && (
-              <Circle x={inn.x} y={inn.y} radius={cr}
-                fill="#ff6b8a" stroke="#fff" strokeWidth={0.5 / z} listening={false} />
-            )}
+            {horseSorted.map((kf, sortedIdx) => {
+              const origIdx = horse.keyframes.indexOf(kf)
+              const out = cpOut(kf), inn = cpIn(kf)
+              const hasCpOut = kf.cpOut && (kf.cpOut.x !== kf.x || kf.cpOut.y !== kf.y)
+              const hasCpIn  = kf.cpIn  && (kf.cpIn.x  !== kf.x || kf.cpIn.y  !== kf.y)
+              const isActive = isEditable && activeKfIdx === origIdx
 
-            {/* Keyframe anchor square */}
-            <Rect
-              x={kf.x - (isActive ? hs * 1.4 : hs)} y={kf.y - (isActive ? hs * 1.4 : hs)}
-              width={isActive ? hs * 2.8 : hs * 2} height={isActive ? hs * 2.8 : hs * 2}
-              fill={isActive ? '#fff' : '#e94560'} stroke={isActive ? '#e94560' : '#fff'} strokeWidth={1 / z}
-              listening={false}
-            />
+              return (
+                <React.Fragment key={sortedIdx}>
+                  {/* Handle guide lines — editable horse only */}
+                  {isEditable && (hasCpOut || isActive) && (
+                    <Line points={[kf.x, kf.y, out.x, out.y]}
+                      stroke="#e94560" strokeWidth={1 / z} opacity={0.5} listening={false} dash={[3/z, 2/z]} />
+                  )}
+                  {isEditable && (hasCpIn || isActive) && (
+                    <Line points={[kf.x, kf.y, inn.x, inn.y]}
+                      stroke="#e94560" strokeWidth={1 / z} opacity={0.5} listening={false} dash={[3/z, 2/z]} />
+                  )}
+                  {/* Handle circles — editable horse only */}
+                  {isEditable && (hasCpOut || isActive) && (
+                    <Circle x={out.x} y={out.y} radius={cr}
+                      fill="#ff6b8a" stroke="#fff" strokeWidth={0.5 / z} listening={false} />
+                  )}
+                  {isEditable && (hasCpIn || isActive) && (
+                    <Circle x={inn.x} y={inn.y} radius={cr}
+                      fill="#ff6b8a" stroke="#fff" strokeWidth={0.5 / z} listening={false} />
+                  )}
+                  {/* Anchor square */}
+                  <Rect
+                    x={kf.x - (isActive ? hs * 1.4 : hs)} y={kf.y - (isActive ? hs * 1.4 : hs)}
+                    width={isActive ? hs * 2.8 : hs * 2} height={isActive ? hs * 2.8 : hs * 2}
+                    fill={isActive ? '#fff' : '#e94560'} stroke={isActive ? '#e94560' : '#fff'}
+                    strokeWidth={1 / z} opacity={isEditable ? 1 : 0.4} listening={false}
+                  />
+                </React.Fragment>
+              )
+            })}
           </React.Fragment>
         )
       })}

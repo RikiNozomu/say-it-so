@@ -35,8 +35,8 @@ export interface AppState {
   playbackState: PlaybackState
   playbackSpeed: number
 
-  // motion paths
-  showMotionPaths: boolean
+  // motion paths — IDs of horses whose paths are currently visible
+  motionPathHorseIds: string[]
 }
 
 export const DEFAULT_STATE: AppState = {
@@ -68,7 +68,7 @@ export const DEFAULT_STATE: AppState = {
   playbackState: 'idle',
   playbackSpeed: 1,
 
-  showMotionPaths: false,
+  motionPathHorseIds: [],
 }
 
 function reorder<T extends { id: string; order: number }>(
@@ -219,8 +219,13 @@ export function reducer(state: AppState, action: Action): AppState {
           return { ...h, keyframes: kfs }
         }),
       }
-    case 'TOGGLE_MOTION_PATHS':
-      return { ...state, showMotionPaths: !state.showMotionPaths }
+    case 'TOGGLE_MOTION_PATHS': {
+      const ids = state.motionPathHorseIds
+      const next = ids.includes(action.horseId)
+        ? ids.filter(id => id !== action.horseId)
+        : [...ids, action.horseId]
+      return { ...state, motionPathHorseIds: next }
+    }
     case 'REMOVE_KEYFRAME':
       return {
         ...state,

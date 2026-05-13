@@ -96,15 +96,21 @@ export function Timeline() {
               onClick={() => dispatch({ type: 'SELECT_HORSE', id: horse.id })}
             >
               <span className="flex-1 truncate px-2">{`#${horse.number} ${horse.name}`}</span>
-              {isSelected && (
-                <button
-                  className="shrink-0 mr-1.5 p-0.5 rounded text-zinc-300 hover:text-white transition-colors"
-                  title={state.showMotionPaths ? 'Hide path' : 'Show path'}
-                  onClick={(e) => { e.stopPropagation(); dispatch({ type: 'TOGGLE_MOTION_PATHS' }) }}
-                >
-                  {state.showMotionPaths ? <FiEye size={11} /> : <FiEyeOff size={11} />}
-                </button>
-              )}
+              {/* Eye icon on every horse row */}
+              {(() => {
+                const pathOn = state.motionPathHorseIds.includes(horse.id)
+                return (
+                  <button
+                    className={`shrink-0 mr-1.5 p-0.5 rounded transition-colors ${
+                      pathOn ? 'text-accent hover:text-white' : 'text-zinc-600 hover:text-zinc-300'
+                    }`}
+                    title={pathOn ? 'Hide motion path' : 'Show motion path'}
+                    onClick={(e) => { e.stopPropagation(); dispatch({ type: 'TOGGLE_MOTION_PATHS', horseId: horse.id }) }}
+                  >
+                    {pathOn ? <FiEye size={11} /> : <FiEyeOff size={11} />}
+                  </button>
+                )
+              })()}
             </div>
           )
         })}
