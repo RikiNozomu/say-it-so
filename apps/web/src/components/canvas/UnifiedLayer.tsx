@@ -350,9 +350,10 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
 
   const avgBorderWidth = borderWidths.reduce((a, b) => a + b, 0) / borderWidths.length
 
+  // Two-polygon approach: outer (border colour) sits behind inner (surface texture).
+  // Both use the same miter-join polygon builder so corners match cleanly.
+  const borderPath = buildTrackPolygon(samples, widths, anchorCount, 'fill', avgBorderWidth)
   const fillPath   = buildTrackPolygon(samples, widths, anchorCount, 'fill', 0)
-  const leftPath   = buildTrackPolygon(samples, widths, anchorCount, 'left',  avgBorderWidth / 2)
-  const rightPath  = buildTrackPolygon(samples, widths, anchorCount, 'right', avgBorderWidth / 2)
 
   const textureImage = surface === 'turf' ? turfImage : dirtImage
   const surfaceFillProps = textureImage
@@ -396,14 +397,11 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
         shadowBlur={selected ? 8 : 0}
         shadowColor="#e94560"
       >
-        {/* Track surface fill */}
-        <Path data={fillPath} {...surfaceFillProps} stroke="transparent" strokeWidth={0} listening={true} hitStrokeWidth={0} />
+        {/* Border: outer polygon filled with border colour */}
+        <Path data={borderPath} fill={borderColor} stroke="transparent" strokeWidth={0} listening={true} hitStrokeWidth={0} />
 
-        {/* Left border */}
-        <Path data={leftPath} fill="transparent" stroke={borderColor} strokeWidth={avgBorderWidth} listening={false} />
-
-        {/* Right border */}
-        <Path data={rightPath} fill="transparent" stroke={borderColor} strokeWidth={avgBorderWidth} listening={false} />
+        {/* Surface: inner polygon filled with texture (drawn on top of border) */}
+        <Path data={fillPath} {...surfaceFillProps} stroke="transparent" strokeWidth={0} listening={false} />
 
         {/* Horse-length tick marks */}
         {tickMarkers.map((m, i) => (

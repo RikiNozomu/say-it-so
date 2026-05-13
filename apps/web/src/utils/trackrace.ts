@@ -55,7 +55,6 @@ export function sampleTrackPath(anchors: PenAnchor[]): SamplePoint[] {
   const segCount = anchors.length - 1
   let totalLen = 0
 
-  // First pass: collect raw samples and cumulative lengths
   interface RawPt { x: number; y: number; tx: number; ty: number; cum: number }
   const raw: RawPt[] = []
 
@@ -95,6 +94,82 @@ export function interpolateWidth(t: number, widths: number[], anchorCount: numbe
   return (widths[lo] ?? widths[widths.length - 1]) * (1 - frac) + (widths[hi] ?? widths[widths.length - 1]) * frac
 }
 
+// Intersection of two infinite lines: line1 through p in direction d, line2 through q in direction e
+function lineLine(
+  p: { x: number; y: number }, d: { x: number; y: number },
+  q: { x: number; y: number }, e: { x: number; y: number },
+): { x: number; y: number } | null {
+  const denom = d.x * e.y - d.y * e.x
+  if (Math.abs(denom) < 1e-8) return null
+  const t = ((q.x - p.x) * e.y - (q.y - p.y) * e.x) / denom
+  return { x: p.x + t * d.x, y: p.y + t * d.y }
+}
+
+// Threshold: cos of ~14° — only triggers at sharp segment junctions, not within smooth bezier segments
+const CORNER_DOT = 0.97
+const MITER_LIMIT = 8  // max miter distance as multiple of track half-width at the corner
+
+// Post-process an offset edge array to produce proper miter joins at sharp corners.
+// leftSide=true means this is the left (nx=-ty, ny=tx) offset edge.
+function fixEdgeCorners(
+  pts: { x: number; y: number }[],
+  samples: SamplePoint[],
+  widths: number[],
+  anchorCount: number,
+  leftSide: boolean,
+): { x: number; y: number }[] {
+  const result: { x: number; y: number }[] = []
+  let skipNext = false
+
+  for (let k = 0; k < pts.length; k++) {
+    if (skipNext) { skipNext = false; continue }
+
+    if (k < pts.length - 1) {
+      // Normal vectors at k and k+1
+      const n1x = -samples[k].ty,     n1y = samples[k].tx
+      const n2x = -samples[k + 1].ty, n2y = samples[k + 1].tx
+      const dot = n1x * n2x + n1y * n2y
+
+      if (dot < CORNER_DOT) {
+        // Cross product of tangents: positive = turning left (in screen coords: turning CW)
+        const cross = samples[k].tx * samples[k + 1].ty - samples[k].ty * samples[k + 1].tx
+        // left side is outside when cross > 0; right side is outside when cross < 0
+        const isOutside = leftSide ? (cross > 0) : (cross < 0)
+
+        const miter = lineLine(
+          pts[k],     { x: samples[k].tx,     y: samples[k].ty },
+          pts[k + 1], { x: samples[k + 1].tx, y: samples[k + 1].ty },
+        )
+
+        if (miter) {
+          // Miter limit check: reject if too far from junction
+          const anchorX = (samples[k].x + samples[k + 1].x) / 2
+          const anchorY = (samples[k].y + samples[k + 1].y) / 2
+          const hw = interpolateWidth(samples[k].t, widths, anchorCount) / 2
+          const miterDist = Math.hypot(miter.x - anchorX, miter.y - anchorY)
+
+          if (miterDist <= hw * MITER_LIMIT) {
+            if (isOutside) {
+              // Outside corner: insert miter point between k and k+1
+              result.push(pts[k])
+              result.push(miter)
+            } else {
+              // Inside corner: replace k and k+1 with single miter point
+              result.push(miter)
+              skipNext = true
+            }
+            continue
+          }
+        }
+      }
+    }
+
+    result.push(pts[k])
+  }
+
+  return result
+}
+
 export function buildTrackPolygon(
   samples: SamplePoint[],
   widths: number[],
@@ -109,23 +184,26 @@ export function buildTrackPolygon(
 
   for (const s of samples) {
     const hw = interpolateWidth(s.t, widths, anchorCount) / 2 + borderExtra
-    // Normal = rotate tangent 90°
     const nx = -s.ty
     const ny = s.tx
     left.push({ x: s.x + nx * hw, y: s.y + ny * hw })
     right.push({ x: s.x - nx * hw, y: s.y - ny * hw })
   }
 
+  // Apply miter joins at sharp corners (segment junctions)
+  const fixedLeft  = fixEdgeCorners(left,  samples, widths, anchorCount, true)
+  const fixedRight = fixEdgeCorners(right, samples, widths, anchorCount, false)
+
   if (side === 'left') {
-    return left.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
+    return fixedLeft.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
   }
   if (side === 'right') {
-    return right.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
+    return fixedRight.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
   }
   // fill: left forward + right backward = closed polygon
   const pts = [
-    ...left.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`),
-    ...[...right].reverse().map(p => `L ${p.x} ${p.y}`),
+    ...fixedLeft.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`),
+    ...[...fixedRight].reverse().map(p => `L ${p.x} ${p.y}`),
     'Z',
   ]
   return pts.join(' ')
