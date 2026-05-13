@@ -196,6 +196,66 @@ export function TrackPanel() {
                     </label>
                   )}
 
+                  {/* Reset to base track width — trackrace only */}
+                  {isTrackRace && (() => {
+                    const baseWidthPx = widths.reduce((a, b) => a + b, 0) / widths.length
+                    const alreadyBase = Math.abs(currentWidthPx - baseWidthPx) < 0.5
+                    return (
+                      <button
+                        disabled={alreadyBase}
+                        onClick={() => {
+                          const newWidths = [...widths]
+                          newWidths[idx] = baseWidthPx
+                          dispatch({ type: 'SNAPSHOT' })
+                          dispatch({ type: 'UPDATE_SHAPE', id: editShape.id, patch: { trackWidths: newWidths } })
+                        }}
+                        className="w-full py-1 rounded border border-zinc-600 text-xs text-zinc-300 hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      >
+                        Reset to Base Width
+                      </button>
+                    )
+                  })()}
+
+                  {/* Toggle smooth ↔ corner */}
+                  {(() => {
+                    const isCorner = anc.cpIn.x === anc.x && anc.cpIn.y === anc.y
+                                  && anc.cpOut.x === anc.x && anc.cpOut.y === anc.y
+                    return (
+                      <button
+                        onClick={() => {
+                          if (!editShape.penAnchors) return
+                          dispatch({ type: 'SNAPSHOT' })
+                          const anchors = editShape.penAnchors
+                          let newAnc: typeof anc
+                          if (isCorner) {
+                            const prev = anchors[idx - 1] ?? anc
+                            const next = anchors[idx + 1] ?? anc
+                            const dx = next.x - prev.x, dy = next.y - prev.y
+                            const len = Math.hypot(dx, dy)
+                            if (len > 0) {
+                              const d = Math.min(
+                                Math.hypot(anc.x - prev.x, anc.y - prev.y),
+                                Math.hypot(next.x - anc.x, next.y - anc.y),
+                              ) * 0.4
+                              const ux = dx / len, uy = dy / len
+                              newAnc = { ...anc, cpIn: { x: anc.x - ux * d, y: anc.y - uy * d }, cpOut: { x: anc.x + ux * d, y: anc.y + uy * d } }
+                            } else {
+                              newAnc = anc
+                            }
+                          } else {
+                            newAnc = { ...anc, cpIn: { x: anc.x, y: anc.y }, cpOut: { x: anc.x, y: anc.y } }
+                          }
+                          const newAnchors = [...anchors]
+                          newAnchors[idx] = newAnc
+                          dispatch({ type: 'UPDATE_SHAPE', id: editShape.id, patch: { penAnchors: newAnchors } })
+                        }}
+                        className="w-full py-1 rounded border border-zinc-600 text-xs text-zinc-300 hover:bg-zinc-700 transition-colors"
+                      >
+                        {isCorner ? 'Convert to Smooth Point' : 'Convert to Corner Point'}
+                      </button>
+                    )
+                  })()}
+
                   <button
                     disabled={!canDelete}
                     onClick={() => {
