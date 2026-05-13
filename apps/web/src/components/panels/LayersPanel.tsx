@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { FiEye, FiEyeOff, FiLock, FiUnlock, FiTrash2 } from 'react-icons/fi'
 import {
   TbVectorBezier2, TbRectangle, TbCircle,
-  TbPolygon, TbPhoto, TbGripVertical, TbPencil, TbRuler,
+  TbPolygon, TbPhoto, TbGripVertical, TbPencil, TbRuler, TbRoad,
 } from 'react-icons/tb'
 import { useApp } from '../../context/AppContext'
 import type { TrackShape, RefImage } from '@say-it-so/core'
@@ -23,12 +23,13 @@ function shapeIcon(type: TrackShape['type']) {
     case 'ellipse': return <TbCircle size={12} />
     case 'polygon': return <TbPolygon size={12} />
     case 'pen':     return <TbPencil size={12} />
-    case 'ruler':   return <TbRuler size={12} />
+    case 'ruler':     return <TbRuler size={12} />
+    case 'trackrace': return <TbRoad size={12} />
   }
 }
 
 const SHAPE_LABEL: Record<TrackShape['type'], string> = {
-  bezier: 'Curve', rect: 'Rect', ellipse: 'Ellipse', polygon: 'Polygon', pen: 'Pen', ruler: 'Ruler',
+  bezier: 'Curve', rect: 'Rect', ellipse: 'Ellipse', polygon: 'Polygon', pen: 'Pen', ruler: 'Ruler', trackrace: 'Track',
 }
 
 // ── Grip (module-level so its identity is stable across renders) ───────────

@@ -31,9 +31,12 @@ export interface Horse {
   keyframes: Keyframe[];
 }
 
-export type TrackShapeType = 'bezier' | 'rect' | 'ellipse' | 'polygon' | 'pen' | 'ruler';
+export type TrackShapeType = 'bezier' | 'rect' | 'ellipse' | 'polygon' | 'pen' | 'ruler' | 'trackrace';
 
 export type RulerUnit = 'px' | 'm' | 'mi' | 'fur';
+
+export type TrackUnit = 'px' | 'm' | 'mi';
+export type TrackSurface = 'turf' | 'dirt';
 
 export interface PenAnchor {
   x: number;
@@ -68,6 +71,14 @@ export interface TrackShape {
   rulerSeqColor?: string;
   rulerSeqColorOpacity?: number;
   rulerFontSize?: number;
+  // ── Track Race fields ────────────────────────────────────────────────────
+  trackUnit?: TrackUnit;
+  trackSurface?: TrackSurface;
+  trackWidths?: number[];       // half-width in pixels at each penAnchor (parallel array)
+  trackBorderWidths?: number[]; // border width in pixels at each penAnchor (parallel array)
+  trackBorderColor?: string;
+  trackBorderOpacity?: number;
+  trackHorseInterval?: number;  // horse-length tick interval (0 = off), in trackUnit
 }
 
 export interface RefImage {

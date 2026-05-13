@@ -3,7 +3,17 @@
     "allow": [
       "Bash(curl -s http://localhost:5173)",
       "Bash(pkill -f \"vite.*5173\")",
-      "Bash(pnpm add *)"
+      "Bash(pnpm add *)",
+      "Bash(apps/web/node_modules/.bin/tsc --noEmit -p apps/web/tsconfig.json)",
+      "Bash(git push *)",
+      "Bash(npm search *)",
+      "Bash(npx nakkas *)"
     ]
+  },
+  "mcpServers": {
+    "nakkas": {
+      "command": "npx",
+      "args": ["-y", "nakkas"]
+    }
   }
 }

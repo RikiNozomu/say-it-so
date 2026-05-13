@@ -6,6 +6,7 @@ import type { TrackShape, RefImage } from '@say-it-so/core'
 import { useApp } from '../../context/AppContext'
 import { anchorsToPath } from '../../utils/pen'
 import { penPathLengthPx, samplePathAtRatio, formatRulerLength, intervalToPx } from '../../utils/ruler'
+import { sampleTrackPath, buildTrackPolygon, interpolateWidth, trackWidthToPx, formatTrackWidth } from '../../utils/trackrace'
 
 function withAlpha(hex: string, alpha: number): string {
   if (!hex || hex === 'transparent') return 'transparent'
@@ -283,6 +284,150 @@ function RulerItem({ shape, selected, onDblClick }: { shape: TrackShape; selecte
   )
 }
 
+// ── Track Race item ─────────────────────────────────────────────────────────
+
+const SURFACE_FILL: Record<string, string> = {
+  turf: '#3d7a3d',
+  dirt: '#8b5e3c',
+}
+
+function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; selected: boolean; onDblClick?: () => void }) {
+  const { dispatch, state, penDrawing } = useApp()
+  const groupRef = useRef<Konva.Group>(null)
+  const trRef = useRef<Konva.Transformer>(null)
+  const shiftRef = useRef(false)
+
+  useEffect(() => {
+    if (!selected) return
+    const dn = (e: KeyboardEvent) => { if (e.key === 'Shift') shiftRef.current = true }
+    const up = (e: KeyboardEvent) => { if (e.key === 'Shift') shiftRef.current = false }
+    window.addEventListener('keydown', dn)
+    window.addEventListener('keyup', up)
+    return () => { window.removeEventListener('keydown', dn); window.removeEventListener('keyup', up) }
+  }, [selected])
+
+  useEffect(() => {
+    if (!trRef.current) return
+    if (selected && groupRef.current) trRef.current.nodes([groupRef.current])
+    else trRef.current.nodes([])
+    trRef.current.getLayer()?.batchDraw()
+  }, [selected, shape])
+
+  function bakeTransform() {
+    const node = groupRef.current!
+    const dx = node.x(), dy = node.y()
+    const sx = node.scaleX(), sy = node.scaleY()
+    node.x(0); node.y(0); node.scaleX(1); node.scaleY(1); node.rotation(0)
+    if (shape.penAnchors) {
+      const newAnchors = shape.penAnchors.map((a) => ({
+        x: a.x * sx + dx, y: a.y * sy + dy,
+        cpIn:  { x: a.cpIn.x  * sx + dx, y: a.cpIn.y  * sy + dy },
+        cpOut: { x: a.cpOut.x * sx + dx, y: a.cpOut.y * sy + dy },
+      }))
+      // Scale widths proportionally
+      const scale = (sx + sy) / 2
+      const newWidths = (shape.trackWidths ?? []).map(w => w * scale)
+      const newBorderWidths = (shape.trackBorderWidths ?? []).map(w => w * scale)
+      dispatch({ type: 'UPDATE_SHAPE', id: shape.id, patch: { penAnchors: newAnchors, trackWidths: newWidths, trackBorderWidths: newBorderWidths } })
+    }
+  }
+
+  if (shape.visible === false || !shape.penAnchors || shape.penAnchors.length < 2) return null
+
+  const anchors = shape.penAnchors
+  const anchorCount = anchors.length
+  const interactive = !state.editingShapeId
+  const unit = shape.trackUnit ?? 'm'
+  const surface = shape.trackSurface ?? 'turf'
+  const widths = shape.trackWidths ?? anchors.map(() => 20 * state.trackScale)
+  const borderWidths = shape.trackBorderWidths ?? anchors.map(() => 3 * state.trackScale)
+  const borderColor = withAlpha(shape.trackBorderColor ?? '#ffffff', shape.trackBorderOpacity ?? 1)
+  const fillColor = SURFACE_FILL[surface]
+
+  const samples = sampleTrackPath(anchors)
+  if (samples.length < 2) return null
+
+  const avgBorderWidth = borderWidths.reduce((a, b) => a + b, 0) / borderWidths.length
+
+  const fillPath   = buildTrackPolygon(samples, widths, anchorCount, 'fill', 0)
+  const leftPath   = buildTrackPolygon(samples, widths, anchorCount, 'left',  avgBorderWidth / 2)
+  const rightPath  = buildTrackPolygon(samples, widths, anchorCount, 'right', avgBorderWidth / 2)
+
+  // Horse-length tick marks on both borders
+  const horseInterval = shape.trackHorseInterval ?? 0
+  const tickMarkers: { x: number; y: number; side: 'left' | 'right'; label: string }[] = []
+  if (horseInterval > 0) {
+    const intervalPx = trackWidthToPx(horseInterval, unit, state.trackScale)
+    const totalLen = penPathLengthPx(anchors, false)
+    if (intervalPx > 0) {
+      let d = intervalPx
+      while (d < totalLen - intervalPx * 0.1) {
+        const ratio = d / totalLen
+        const pt = samplePathAtRatio(anchors, ratio, false)
+        const sampleIdx = Math.round(ratio * (samples.length - 1))
+        const s = samples[Math.min(sampleIdx, samples.length - 1)]
+        const nx = -s.ty, ny = s.tx
+        const hw = interpolateWidth(ratio, widths, anchorCount) / 2 + avgBorderWidth
+        const label = formatTrackWidth(d, unit, state.trackScale)
+        tickMarkers.push({ x: pt.x + nx * hw, y: pt.y + ny * hw, side: 'left', label })
+        tickMarkers.push({ x: pt.x - nx * hw, y: pt.y - ny * hw, side: 'right', label })
+        d += intervalPx
+      }
+    }
+  }
+
+  return (
+    <>
+      <Group
+        ref={groupRef}
+        draggable={interactive && shape.locked !== true && state.activePanel === 'track'}
+        listening={interactive}
+        opacity={shape.opacity ?? 1}
+        onClick={() => { if (state.activePanel === 'track' && !penDrawing) dispatch({ type: 'SELECT_SHAPE', id: shape.id }) }}
+        onDblClick={() => { if (state.activePanel === 'track' && !penDrawing) onDblClick?.() }}
+        onDragEnd={bakeTransform}
+        onTransformEnd={bakeTransform}
+        shadowBlur={selected ? 8 : 0}
+        shadowColor="#e94560"
+      >
+        {/* Track surface fill */}
+        <Path data={fillPath} fill={fillColor} stroke="transparent" strokeWidth={0} listening={true} hitStrokeWidth={0} />
+
+        {/* Left border */}
+        <Path data={leftPath} fill="transparent" stroke={borderColor} strokeWidth={avgBorderWidth} listening={false} />
+
+        {/* Right border */}
+        <Path data={rightPath} fill="transparent" stroke={borderColor} strokeWidth={avgBorderWidth} listening={false} />
+
+        {/* Horse-length tick marks */}
+        {tickMarkers.map((m, i) => (
+          <Group key={`tick-${i}`} listening={false}>
+            <Circle x={m.x} y={m.y} radius={3} fill={borderColor} />
+            {m.side === 'left' && (
+              <Group x={m.x + 4} y={m.y - 8}>
+                <Rect width={m.label.length * 6 + 8} height={14} fill="rgba(0,0,0,0.65)" cornerRadius={2} />
+                <Text text={m.label} width={m.label.length * 6 + 8} height={14}
+                  fill={borderColor} fontSize={9} align="center" verticalAlign="middle" />
+              </Group>
+            )}
+          </Group>
+        ))}
+      </Group>
+      <Transformer ref={trRef} rotateEnabled keepRatio={false}
+        boundBoxFunc={(oldBox, newBox) => {
+          const nb = { ...newBox, width: Math.max(4, newBox.width), height: Math.max(4, newBox.height) }
+          if (shiftRef.current && oldBox.width !== 0 && oldBox.height !== 0) {
+            const ratio = Math.abs(oldBox.width / oldBox.height)
+            if (Math.abs(nb.width / oldBox.width) >= Math.abs(nb.height / oldBox.height)) nb.height = nb.width / ratio
+            else nb.width = nb.height * ratio
+          }
+          return nb
+        }}
+      />
+    </>
+  )
+}
+
 // ── Image item ──────────────────────────────────────────────────────────────
 
 function ImageItem({ img, selected }: { img: RefImage; selected: boolean }) {
@@ -362,6 +507,15 @@ export function UnifiedLayer({ onDblClickShape }: { onDblClickShape?: (id: strin
           if (shape.type === 'ruler') {
             return (
               <RulerItem
+                key={item.id} shape={shape}
+                selected={state.selectedShapeId === item.id}
+                onDblClick={() => onDblClickShape?.(item.id)}
+              />
+            )
+          }
+          if (shape.type === 'trackrace') {
+            return (
+              <TrackRaceItem
                 key={item.id} shape={shape}
                 selected={state.selectedShapeId === item.id}
                 onDblClick={() => onDblClickShape?.(item.id)}

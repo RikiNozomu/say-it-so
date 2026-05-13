@@ -5,7 +5,7 @@ import type {
 
 export type ActiveTool =
   | 'select' | 'pen' | 'rect' | 'ellipse' | 'polygon'
-  | 'measure' | 'image' | 'ruler'
+  | 'measure' | 'image' | 'ruler' | 'trackrace'
 
 export type ActivePanel = 'horses' | 'track'
 

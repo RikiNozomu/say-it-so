@@ -113,7 +113,7 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'SET_PAN':
       return { ...state, panX: action.x, panY: action.y }
     case 'SET_ACTIVE_TOOL':
-      return { ...state, activeTool: action.tool, editingShapeId: (action.tool === 'pen' || action.tool === 'ruler') ? state.editingShapeId : null }
+      return { ...state, activeTool: action.tool, editingShapeId: (action.tool === 'pen' || action.tool === 'ruler' || action.tool === 'trackrace') ? state.editingShapeId : null }
     case 'SET_ACTIVE_PANEL':
       return {
         ...state,

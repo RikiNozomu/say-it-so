@@ -121,9 +121,9 @@ export function TrackCanvas() {
     [dispatch],
   )
 
-  // Clear pen state when switching away from pen/ruler tool
+  // Clear pen state when switching away from pen/ruler/trackrace tool
   useEffect(() => {
-    if (state.activeTool !== 'pen' && state.activeTool !== 'ruler') setPenDraw(null)
+    if (state.activeTool !== 'pen' && state.activeTool !== 'ruler' && state.activeTool !== 'trackrace') setPenDraw(null)
   }, [state.activeTool])
 
   function snapAngle(fromX: number, fromY: number, toX: number, toY: number): { x: number; y: number } {
@@ -157,29 +157,41 @@ export function TrackCanvas() {
   function commitPenPath(anchors: PenAnchor[], closed: boolean) {
     if (anchors.length < 2) { setPenDraw(null); return }
     const isRuler = state.activeTool === 'ruler'
-    const effectiveClosed = isRuler ? false : closed
+    const isTrackRace = state.activeTool === 'trackrace'
+    const effectiveClosed = (isRuler || isTrackRace) ? false : closed
     if (penDraw?.continuationShapeId) {
       const existing = state.trackShapes.find(s => s.id === penDraw.continuationShapeId)
       if (existing?.penAnchors) {
         const merged = penDraw.continuationEnd === 'start'
           ? [...anchors.slice().reverse(), ...existing.penAnchors]
           : [...existing.penAnchors, ...anchors]
+        // Extend parallel width arrays when continuing a trackrace
+        let patch: Partial<typeof existing> = { penAnchors: merged, closed: effectiveClosed }
+        if (existing.type === 'trackrace' && existing.trackWidths) {
+          const defaultW = existing.trackWidths[0] ?? 20
+          const newWidths = anchors.slice(1).map(() => defaultW)
+          const mergedWidths = penDraw.continuationEnd === 'start'
+            ? [...newWidths.reverse(), ...existing.trackWidths]
+            : [...existing.trackWidths, ...newWidths]
+          patch = { ...patch, trackWidths: mergedWidths }
+        }
         dispatch({ type: 'SNAPSHOT' })
-        dispatch({ type: 'UPDATE_SHAPE', id: penDraw.continuationShapeId, patch: { penAnchors: merged, closed: effectiveClosed } })
+        dispatch({ type: 'UPDATE_SHAPE', id: penDraw.continuationShapeId, patch })
         dispatch({ type: 'SET_EDITING_SHAPE', id: penDraw.continuationShapeId })
         setPenDraw(null); setPreview(null)
         return
       }
     }
+    const defaultTrackWidthPx = 20 * state.trackScale  // 20 metres default
     dispatch({
       type: 'ADD_SHAPE',
       shape: {
         id: crypto.randomUUID(),
-        type: isRuler ? 'ruler' : 'pen',
-        name: autoName(isRuler ? 'ruler' : 'pen'),
+        type: isRuler ? 'ruler' : isTrackRace ? 'trackrace' : 'pen',
+        name: autoName(isRuler ? 'ruler' : isTrackRace ? 'trackrace' : 'pen'),
         points: [],
         penAnchors: anchors,
-        stroke: '#00e5ff',
+        stroke: isTrackRace ? '#ffffff' : '#00e5ff',
         strokeWidth: 2,
         strokeAlpha: 1,
         fill: 'transparent',
@@ -198,6 +210,15 @@ export function TrackCanvas() {
           rulerSeqColor: '#ffdd00',
           rulerSeqColorOpacity: 1,
         }),
+        ...(isTrackRace && {
+          trackUnit: 'm' as const,
+          trackSurface: 'turf' as const,
+          trackWidths: anchors.map(() => defaultTrackWidthPx),
+          trackBorderWidths: anchors.map(() => 3 * state.trackScale),
+          trackBorderColor: '#ffffff',
+          trackBorderOpacity: 1,
+          trackHorseInterval: 0,
+        }),
       },
     })
     setPenDraw(null)
@@ -207,7 +228,7 @@ export function TrackCanvas() {
   function handleContinuePen(shapeId: string, anchors: PenAnchor[], fromEnd: 'start' | 'end') {
     const startAnchor = fromEnd === 'end' ? anchors[anchors.length - 1] : anchors[0]
     const existing = state.trackShapes.find(s => s.id === shapeId)
-    const tool = existing?.type === 'ruler' ? 'ruler' : 'pen'
+    const tool = existing?.type === 'ruler' ? 'ruler' : existing?.type === 'trackrace' ? 'trackrace' : 'pen'
     dispatch({ type: 'SET_EDITING_SHAPE', id: null })
     dispatch({ type: 'SET_ACTIVE_TOOL', tool })
     setPenDraw({
@@ -269,7 +290,7 @@ export function TrackCanvas() {
 
     const { x, y } = canvasCoords()
 
-    if (tool === 'pen' || tool === 'ruler') {
+    if (tool === 'pen' || tool === 'ruler' || tool === 'trackrace') {
       let px = x, py = y
       if (e.evt.shiftKey && penDraw && penDraw.anchors.length > 0) {
         const last = penDraw.anchors[penDraw.anchors.length - 1]
@@ -280,7 +301,7 @@ export function TrackCanvas() {
       if (!penDraw) {
         setPenDraw({ anchors: [newAnchor] })
       } else {
-        // Close path — pen only, not ruler
+        // Close path — pen only, not ruler/trackrace
         if (tool === 'pen') {
           const first = penDraw.anchors[0]
           const dist = Math.hypot(px - first.x, py - first.y)
@@ -304,7 +325,7 @@ export function TrackCanvas() {
     setPreview({ x, y })
 
     // Drag-to-curve: while mouse held after placing a pen/ruler anchor, pull out handles
-    if ((state.activeTool === 'pen' || state.activeTool === 'ruler') && penDragRef.current) {
+    if ((state.activeTool === 'pen' || state.activeTool === 'ruler' || state.activeTool === 'trackrace') && penDragRef.current) {
       setPenDraw((d) => {
         if (!d || d.anchors.length === 0) return d
         const ancs = [...d.anchors]
@@ -360,7 +381,7 @@ export function TrackCanvas() {
 
     // After a pen/ruler drag, retract cpOut so the next segment isn't forced into a curve.
     // cpIn stays (keeps the incoming curve smooth); cpOut returns to anchor position (outgoing is free).
-    if (wasPenDragging && (state.activeTool === 'pen' || state.activeTool === 'ruler')) {
+    if (wasPenDragging && (state.activeTool === 'pen' || state.activeTool === 'ruler' || state.activeTool === 'trackrace')) {
       setPenDraw((d) => {
         if (!d || d.anchors.length === 0) return d
         const ancs = [...d.anchors]
@@ -394,7 +415,7 @@ export function TrackCanvas() {
   function handleDblClick() {
     const tool = state.activeTool
 
-    if ((tool === 'pen' || tool === 'ruler') && penDraw && penDraw.anchors.length >= 2) {
+    if ((tool === 'pen' || tool === 'ruler' || tool === 'trackrace') && penDraw && penDraw.anchors.length >= 2) {
       const anchors = penDraw.anchors.slice(0, -1)
       commitPenPath(anchors, false)
       return
@@ -409,7 +430,7 @@ export function TrackCanvas() {
     const previewColor = '#00e5ff'
 
     // ── Pen / Ruler tool preview ──────────────────────────────────────────
-    if ((tool === 'pen' || tool === 'ruler') && penDraw) {
+    if ((tool === 'pen' || tool === 'ruler' || tool === 'trackrace') && penDraw) {
       const { anchors } = penDraw
       const z = state.zoom
       const hs = 5 / z   // anchor square half-size (screen-space 5px)
@@ -539,11 +560,12 @@ export function TrackCanvas() {
           const canEdit =
             state.activeTool === 'select' ||
             (state.activeTool === 'pen' && notMidDraw) ||
-            (state.activeTool === 'ruler' && notMidDraw)
+            (state.activeTool === 'ruler' && notMidDraw) ||
+            (state.activeTool === 'trackrace' && notMidDraw)
           if (!canEdit) return
           const shape = state.trackShapes.find(s => s.id === id)
           if (!shape || shape.type === 'ellipse') return
-          if (shape.type === 'pen' || shape.type === 'ruler') {
+          if (shape.type === 'pen' || shape.type === 'ruler' || shape.type === 'trackrace') {
             dispatch({ type: 'SET_ACTIVE_TOOL', tool: shape.type })
           } else {
             const penAnchors = shapeToPenAnchors(shape)
@@ -598,6 +620,8 @@ export function TrackCanvas() {
         <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-black/70 text-xs text-cyan-300 px-3 py-1 rounded pointer-events-none">
           {state.activeTool === 'pen'
             ? 'Click — place anchor · Click+drag — curve · Alt+drag — one-sided · Click start — close · Dbl-click — finish'
+            : state.activeTool === 'trackrace'
+            ? 'Click — place anchor · Click+drag — curve · Dbl-click — finish'
             : state.activeTool === 'ruler'
             ? 'Click — place point · Click+drag — curve · Alt+drag — one-sided · Dbl-click — finish'
             : 'Release to place shape · Esc to cancel'}

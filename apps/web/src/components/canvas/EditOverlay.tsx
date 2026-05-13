@@ -85,8 +85,9 @@ export function EditOverlay({
   const { editingShapeId } = state
   if (!editingShapeId) return null
   const shape = state.trackShapes.find((s) => s.id === editingShapeId)
-  if (!shape || (shape.type !== 'pen' && shape.type !== 'ruler') || !shape.penAnchors) return null
+  if (!shape || (shape.type !== 'pen' && shape.type !== 'ruler' && shape.type !== 'trackrace') || !shape.penAnchors) return null
   const isRuler = shape.type === 'ruler'
+  const isTrackRace = shape.type === 'trackrace'
 
   // Keep ref in sync
   anchorsRef.current = shape.penAnchors
@@ -225,7 +226,7 @@ export function EditOverlay({
           cpOut: { x: d.origAnchor.cpOut.x + dx, y: d.origAnchor.cpOut.y + dy },
         }
         // Snap-to-close: highlight the opposite endpoint (pen only, not ruler)
-        if (!isRuler && !shape!.closed && (d.idx === 0 || d.idx === ancs.length - 1)) {
+        if (!isRuler && !isTrackRace && !shape!.closed && (d.idx === 0 || d.idx === ancs.length - 1)) {
           const otherIdx = d.idx === 0 ? ancs.length - 1 : 0
           const other = ancs[otherIdx]
           const near = Math.hypot(mx - other.x, my - other.y) < SNAP * 1.5
