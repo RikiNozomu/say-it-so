@@ -21,6 +21,12 @@ export function Timeline() {
   const innerRef = useRef<HTMLDivElement>(null)
   const [ctx, setCtx] = useState<ContextMenu | null>(null)
   const [zoom, setZoom] = useState(1)
+  const [snapToKf, setSnapToKf] = useState(true)
+
+  // All keyframe times across every horse — used as snap targets
+  const allTimes = [...new Set(
+    state.horses.flatMap(h => h.keyframes.map(k => k.time))
+  )].sort((a, b) => a - b)
 
   function scrubberClick(e: React.MouseEvent<HTMLDivElement>) {
     const rect = innerRef.current?.getBoundingClientRect()
@@ -46,12 +52,22 @@ export function Timeline() {
         className="absolute left-0 top-0 bottom-0 z-20 flex flex-col border-r border-border"
         style={{ width: LABEL_W }}
       >
-        {/* Corner: zoom controls */}
+        {/* Corner: zoom + snap controls */}
         <div
           className="flex items-center justify-between px-2 border-b border-border bg-surface shrink-0"
           style={{ height: HEADER_H }}
         >
-          <span className="text-[9px] text-zinc-500 font-medium">Timeline</span>
+          {/* Snap toggle */}
+          <button
+            onClick={() => setSnapToKf(v => !v)}
+            title={snapToKf ? 'Snap to keyframe: ON' : 'Snap to keyframe: OFF'}
+            className={`text-[9px] px-1.5 py-0.5 rounded font-medium transition-colors ${
+              snapToKf ? 'bg-accent/30 text-accent' : 'text-zinc-600 hover:text-zinc-400'
+            }`}
+          >
+            Snap
+          </button>
+          {/* Zoom controls */}
           <div className="flex items-center gap-0.5">
             <button
               onClick={() => setZoom(z => Math.max(MIN_ZOOM, +(z - 0.5).toFixed(1)))}
@@ -100,7 +116,6 @@ export function Timeline() {
         style={{ left: LABEL_W, right: 0 }}
         onWheel={handleWheel}
       >
-        {/* Inner div: stretched by zoom, all positions are % within it */}
         <div
           ref={innerRef}
           className="relative h-full cursor-pointer"
@@ -115,6 +130,8 @@ export function Timeline() {
               horseId={horse.id}
               keyframes={horse.keyframes}
               top={HEADER_H + i * LANE_H}
+              snapToKf={snapToKf}
+              allTimes={allTimes}
               onContextMenu={(kfIndex, x, y) =>
                 setCtx({ horseId: horse.id, kfIndex, x, y })
               }
@@ -140,7 +157,7 @@ export function Timeline() {
   )
 }
 
-// ── Track ruler (inside scrollable area, no label offset) ─────────────────────
+// ── Track ruler ───────────────────────────────────────────────────────────────
 
 function TrackRuler({ duration }: { duration: number }) {
   const ticks = Math.min(40, Math.floor(duration) + 1)
@@ -165,14 +182,16 @@ function TrackRuler({ duration }: { duration: number }) {
   )
 }
 
-// ── Horse track row (keyframe diamonds only, no label) ────────────────────────
+// ── Horse track row ───────────────────────────────────────────────────────────
 
 function HorseTrack({
-  horseId, keyframes, top, onContextMenu,
+  horseId, keyframes, top, snapToKf, allTimes, onContextMenu,
 }: {
   horseId: string
   keyframes: Keyframe[]
   top: number
+  snapToKf: boolean
+  allTimes: number[]
   onContextMenu: (kfIndex: number, x: number, y: number) => void
 }) {
   const { state, dispatch } = useApp()
@@ -192,6 +211,8 @@ function HorseTrack({
             kf={kf}
             left={pct}
             hasCurve={!!hasCurve}
+            snapToKf={snapToKf}
+            allTimes={allTimes}
             onDrag={(newTime) =>
               dispatch({ type: 'UPDATE_KEYFRAME_TIME', horseId, index: idx, newTime })
             }
@@ -206,11 +227,13 @@ function HorseTrack({
 // ── Keyframe diamond ──────────────────────────────────────────────────────────
 
 function KeyframeDiamond({
-  kf, left, hasCurve, onDrag, onContextMenu,
+  kf, left, hasCurve, snapToKf, allTimes, onDrag, onContextMenu,
 }: {
   kf: Keyframe
   left: number
   hasCurve: boolean
+  snapToKf: boolean
+  allTimes: number[]
   onDrag: (newTime: number) => void
   onContextMenu: (x: number, y: number) => void
 }) {
@@ -225,20 +248,30 @@ function KeyframeDiamond({
     const parent = parentRef.current?.parentElement
     if (!parent) return
     const rect = parent.getBoundingClientRect()
-    const duration = state.duration  // capture once
+    const duration = state.duration
+    const selfTime = kf.time
+    // Snap targets: all keyframe times except this keyframe's own time
+    const snapTargets = snapToKf ? allTimes.filter(t => t !== selfTime) : []
 
-    function pctAt(me: MouseEvent) {
+    function timeAt(me: MouseEvent) {
       const x = me.clientX - rect.left
-      return Math.max(0, Math.min(100, (x / rect.width) * 100))
+      let t = Math.max(0, Math.min(duration, (x / rect.width) * duration))
+      if (snapTargets.length > 0) {
+        const snapThreshold = (8 / rect.width) * duration  // 8px in time units
+        for (const candidate of snapTargets) {
+          if (Math.abs(candidate - t) < snapThreshold) { t = candidate; break }
+        }
+      }
+      return t
     }
 
     function onMove(me: MouseEvent) {
-      setDragLeft(pctAt(me))
+      const t = timeAt(me)
+      setDragLeft((t / duration) * 100)
     }
     function onUp(me: MouseEvent) {
-      const pct = pctAt(me)
       setDragLeft(null)
-      onDrag(Math.max(0, Math.min(duration, (pct / 100) * duration)))
+      onDrag(timeAt(me))
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
@@ -262,7 +295,7 @@ function KeyframeDiamond({
   )
 }
 
-// ── Playhead (inside scrollable inner div) ────────────────────────────────────
+// ── Playhead ──────────────────────────────────────────────────────────────────
 
 function Playhead() {
   const { state, dispatch } = useApp()
