@@ -240,15 +240,15 @@ function RulerItem({ shape, selected, onDblClick }: { shape: TrackShape; selecte
 
         {/* Sequence markers */}
         {seqMarkers.map((m, i) => {
-          const seqFontSize = shape.rulerSeqFontSize ?? Math.max(8, fontSize - 2)
-          const sw = m.label.length * seqFontSize * 0.6 + 12
-          const sh = seqFontSize + 4
+          const dotR = shape.rulerSeqDotSize ?? Math.max(3, fontSize * 0.3)
+          const sw = m.label.length * charW + 12
+          const sh = labelH
           return (
             <Group key={`seq-${i}`} listening={false}>
-              <Circle x={m.x} y={m.y} radius={Math.max(3, seqFontSize * 0.3)} fill={seqColor} />
-              <Group x={m.x - sw / 2} y={m.y + seqFontSize * 0.4}>
+              <Circle x={m.x} y={m.y} radius={dotR} fill={seqColor} />
+              <Group x={m.x - sw / 2} y={m.y + dotR + 3}>
                 <Rect width={sw} height={sh} fill={labelBgColor} cornerRadius={2} />
-                <Text text={m.label} width={sw} height={sh} fill={seqColor} fontSize={seqFontSize} fontStyle="bold" align="center" verticalAlign="middle" />
+                <Text text={m.label} width={sw} height={sh} fill={seqColor} fontSize={fontSize} fontStyle="bold" align="center" verticalAlign="middle" />
               </Group>
             </Group>
           )

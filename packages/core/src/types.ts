@@ -70,7 +70,7 @@ export interface TrackShape {
   rulerSeqInterval?: number;   // interval in the ruler's unit (0 = disabled)
   rulerSeqColor?: string;
   rulerSeqColorOpacity?: number;
-  rulerSeqFontSize?: number;
+  rulerSeqDotSize?: number;    // radius of the sequence dot marker in px
   rulerFontSize?: number;
   // ── Track Race fields ────────────────────────────────────────────────────
   trackUnit?: TrackUnit;
