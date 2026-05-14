@@ -2,7 +2,7 @@
 
 A browser-based tool for choreographing and replaying racehorse movements on a custom track. Draw the track, add horses, set keyframes on a timeline, and play back the race in real time.
 
-**Version:** 0.5 · **Owner:** Riki · rikinozomu2022@gmail.com
+**Version:** 0.7 · **Owner:** Riki · rikinozomu2022@gmail.com · [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
