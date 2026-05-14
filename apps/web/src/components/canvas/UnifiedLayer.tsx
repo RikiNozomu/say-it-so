@@ -298,8 +298,8 @@ function TrackRaceItem({ shape, selected, onDblClick }: { shape: TrackShape; sel
   const groupRef = useRef<Konva.Group>(null)
   const trRef = useRef<Konva.Transformer>(null)
   const shiftRef = useRef(false)
-  const [turfImage] = useImage('/textures/turf.svg')
-  const [dirtImage] = useImage('/textures/dirt.svg')
+  const [turfImage] = useImage(`${import.meta.env.BASE_URL}textures/turf.svg`)
+  const [dirtImage] = useImage(`${import.meta.env.BASE_URL}textures/dirt.svg`)
 
   useEffect(() => {
     if (!selected) return

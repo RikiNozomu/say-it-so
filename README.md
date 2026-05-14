@@ -117,6 +117,14 @@ say-it-so/
 
 ---
 
+## Live Demo
+
+**https://rikinozomu.github.io/say-it-so/**
+
+Deployed automatically to GitHub Pages on every push to `master` via `.github/workflows/deploy.yml`.
+
+---
+
 ## Running Locally
 
 **Prerequisites:** Node.js 20+ · pnpm 9 (`npm install -g pnpm@9`)
@@ -144,7 +152,7 @@ Preview the build locally:
 pnpm --filter web exec vite preview
 ```
 
-## Docker
+## Docker (self-hosted)
 
 ```bash
 # Production (port 3000)

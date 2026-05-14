@@ -295,6 +295,12 @@ docker compose up --build              # production, port 3000
 docker compose --profile dev up        # dev server, port 5173
 ```
 
+### GitHub Pages (production)
+- Live URL: **https://rikinozomu.github.io/say-it-so/**
+- Auto-deploys on every push to `master` via `.github/workflows/deploy.yml`
+- Vite `base` is set to `/say-it-so/` in `apps/web/vite.config.ts`
+- Public asset paths (textures etc.) must use `import.meta.env.BASE_URL` prefix, not absolute `/` paths
+
 ---
 
 ## What Is Built
