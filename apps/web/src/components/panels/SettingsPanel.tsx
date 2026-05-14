@@ -98,7 +98,7 @@ export function SettingsPanel() {
   )
 }
 
-function SpeedCalc({ horse }: { horse: { id: string; keyframes: any[]; name: string } }) {
+function SpeedCalc({ horse }: { horse: { id: string; keyframes: { time: number; x: number; y: number }[]; name: string } }) {
   const { state } = useApp()
   const unit = useUnit()
 
@@ -106,7 +106,7 @@ function SpeedCalc({ horse }: { horse: { id: string; keyframes: any[]; name: str
     return <p className="text-xs text-zinc-500 italic">Need at least 2 keyframes</p>
   }
 
-  const sorted = [...horse.keyframes].sort((a: any, b: any) => a.time - b.time)
+  const sorted = [...horse.keyframes].sort((a, b) => a.time - b.time)
   const t1 = sorted[0].time
   const t2 = sorted[sorted.length - 1].time
   const speed = measureHorseSpeed(horse.keyframes, t1, t2, state.trackScale)

@@ -13,6 +13,7 @@ async function writeFile(filename: string, data: object): Promise<void> {
 
   if ('showSaveFilePicker' in window) {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const handle = await (window as any).showSaveFilePicker({
         suggestedName: filename,
         types: [{ description: 'Say It So file', accept: { 'application/json': ['.json'] } }],
@@ -21,8 +22,8 @@ async function writeFile(filename: string, data: object): Promise<void> {
       await writable.write(json)
       await writable.close()
       return
-    } catch (e: any) {
-      if (e.name === 'AbortError') return
+    } catch (e: unknown) {
+      if ((e as { name?: string }).name === 'AbortError') return
       // fall through to anchor download
     }
   }
@@ -39,14 +40,15 @@ async function writeFile(filename: string, data: object): Promise<void> {
 async function readFile(): Promise<string | null> {
   if ('showOpenFilePicker' in window) {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const [handle] = await (window as any).showOpenFilePicker({
         types: [{ description: 'Say It So file', accept: { 'application/json': ['.json'] } }],
         multiple: false,
       })
       const file = await handle.getFile()
       return await file.text()
-    } catch (e: any) {
-      if (e.name === 'AbortError') return null
+    } catch (e: unknown) {
+      if ((e as { name?: string }).name === 'AbortError') return null
       // fall through to input fallback
     }
   }

@@ -2,9 +2,9 @@
 # bump-version.sh — update code version across all package.json files
 #
 # Usage:
-#   bash scripts/bump-version.sh           # minor bump (X.Y → X.Y+1)
-#   bash scripts/bump-version.sh --major   # major bump (X.Y → X+1.0)
-#   bash scripts/bump-version.sh --set 1.3 # set explicit version
+#   bash scripts/bump-version.sh           # minor bump (X.Y.Z → X.Y+1.0)
+#   bash scripts/bump-version.sh --major   # major bump (X.Y.Z → X+1.0.0)
+#   bash scripts/bump-version.sh --set 1.3 # set explicit version (stored as 1.3.0)
 
 set -euo pipefail
 
@@ -16,10 +16,13 @@ PKGS=(
   "$ROOT/packages/core/package.json"
 )
 
-# Read current version from root package.json
+# Read current version from root package.json (strip patch if present)
 current=$(node -p "require('$ROOT/package.json').version")
+# Normalize: strip trailing .0 so display is X.Y
+display=$(echo "$current" | sed 's/\.0$//')
 
-IFS='.' read -r major minor <<< "$current"
+IFS='.' read -r major minor _patch <<< "$current"
+minor=${minor:-0}
 
 mode="${1:-}"
 
@@ -33,7 +36,8 @@ case "$mode" in
       echo "Error: --set requires a version argument (e.g. --set 1.3)" >&2
       exit 1
     fi
-    IFS='.' read -r major minor <<< "$2"
+    IFS='.' read -r major minor _rest <<< "$2"
+    minor=${minor:-0}
     ;;
   ""|--minor)
     minor=$((minor + 1))
@@ -44,16 +48,17 @@ case "$mode" in
     ;;
 esac
 
-new_version="$major.$minor"
+# Always store full semver (X.Y.0) for pnpm workspace compatibility
+new_version="$major.$minor.0"
+new_display="$major.$minor"
 
-echo "Bumping: $current → $new_version"
+echo "Bumping: $display → $new_display  (stored as $new_version)"
 
 for pkg in "${PKGS[@]}"; do
   if [[ ! -f "$pkg" ]]; then
     echo "Warning: $pkg not found, skipping" >&2
     continue
   fi
-  # Use node to rewrite version field safely (preserves formatting via JSON.stringify with indent)
   node - "$pkg" "$new_version" <<'EOF'
 const fs = require('fs');
 const [,, file, ver] = process.argv;
@@ -64,5 +69,5 @@ console.log('Updated', file);
 EOF
 done
 
-echo "Done. New version: $new_version"
+echo "Done. New version: $new_display"
 echo "Remember to git commit the package.json changes before pushing."

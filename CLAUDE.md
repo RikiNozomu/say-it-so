@@ -34,7 +34,7 @@ bash scripts/bump-version.sh --major   # major bump
 bash scripts/bump-version.sh --set X.Y # set explicit version
 ```
 
-Current code version: **0.5**
+Current code version: **0.9** (stored as `0.9.0` in package.json — pnpm 11 requires full semver)
 
 ### JSON file version (integer)
 - Authoritative constant: `JSON_FILE_VERSION` in `packages/core/src/types.ts`
@@ -290,10 +290,20 @@ pnpm install
 pnpm dev          # http://localhost:5173
 
 pnpm build        # production build → apps/web/dist/
+pnpm lint         # ESLint (0 warnings allowed)
+pnpm test         # Vitest (Jest-compatible API)
+pnpm test:coverage  # coverage report via v8
 
 docker compose up --build              # production, port 3000
 docker compose --profile dev up        # dev server, port 5173
 ```
+
+### Lint & Test details
+- ESLint config: `apps/web/.eslintrc.cjs` — TypeScript + react-hooks + react-refresh rules, 0 max warnings
+- Test runner: **Vitest** (not Jest) — identical API (`describe/it/expect`), native Vite + ESM support
+- Test setup: `apps/web/src/test/setup.ts` — imports `@testing-library/jest-dom`
+- Tests live in `apps/web/src/test/` — pure utility functions in `packages/core` are the primary targets; React component tests use `@testing-library/react` + `jsdom`
+- CI runs lint → test → build → deploy in that order (all must pass before deploy)
 
 ### GitHub Pages (production)
 - Live URL: **https://rikinozomu.github.io/say-it-so/**
