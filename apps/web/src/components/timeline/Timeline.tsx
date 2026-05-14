@@ -1,7 +1,11 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useLayoutEffect } from 'react'
 import { FiEye, FiEyeOff } from 'react-icons/fi'
+import { MdNavigateBefore, MdNavigateNext } from 'react-icons/md'
 import type { Keyframe } from '@say-it-so/core'
+import { interpolatePosition } from '@say-it-so/core'
 import { useApp } from '../../context/AppContext'
+
+const KF_SNAP = 0.05
 
 const LANE_H = 28
 const HEADER_H = 24
@@ -19,6 +23,9 @@ interface ContextMenu {
 export function Timeline() {
   const { state, dispatch } = useApp()
   const innerRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const panRef = useRef<{ startX: number; scrollLeft: number } | null>(null)
+  const pendingScrollRef = useRef<number | null>(null)
   const [ctx, setCtx] = useState<ContextMenu | null>(null)
   const [zoom, setZoom] = useState(1)
   const [snapToKf, setSnapToKf] = useState(true)
@@ -36,10 +43,52 @@ export function Timeline() {
     dispatch({ type: 'SET_CURRENT_TIME', time: t })
   }
 
+  // After a zoom change, apply the pre-computed scrollLeft so the anchor stays put
+  useLayoutEffect(() => {
+    if (pendingScrollRef.current !== null && scrollRef.current) {
+      scrollRef.current.scrollLeft = pendingScrollRef.current
+      pendingScrollRef.current = null
+    }
+  }, [zoom])
+
+  function zoomAround(anchorFraction: number, newZoom: number, oldZoom: number) {
+    const el = scrollRef.current
+    if (!el) return
+    // Keep the pixel at anchorFraction stationary in the viewport
+    const anchorViewportX = anchorFraction * el.clientWidth * oldZoom - el.scrollLeft
+    pendingScrollRef.current = anchorFraction * el.clientWidth * newZoom - anchorViewportX
+    setZoom(newZoom)
+  }
+
   function handleWheel(e: React.WheelEvent<HTMLDivElement>) {
-    if (!e.ctrlKey && !e.metaKey) return
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault()
+      const fraction = state.duration > 0 ? state.currentTime / state.duration : 0
+      const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, +(zoom - e.deltaY * 0.005).toFixed(2)))
+      zoomAround(fraction, newZoom, zoom)
+    } else {
+      const el = scrollRef.current
+      if (el) el.scrollLeft += e.deltaX !== 0 ? e.deltaX : e.deltaY
+    }
+  }
+
+  function handlePanDown(e: React.MouseEvent<HTMLDivElement>) {
+    if (e.button !== 1) return
     e.preventDefault()
-    setZoom(z => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, +(z - e.deltaY * 0.005).toFixed(2))))
+    const el = scrollRef.current
+    if (!el) return
+    panRef.current = { startX: e.clientX, scrollLeft: el.scrollLeft }
+    function onMove(me: MouseEvent) {
+      if (!panRef.current || !scrollRef.current) return
+      scrollRef.current.scrollLeft = panRef.current.scrollLeft - (me.clientX - panRef.current.startX)
+    }
+    function onUp() {
+      panRef.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
   }
 
   const totalH = HEADER_H + state.horses.length * LANE_H
@@ -70,13 +119,13 @@ export function Timeline() {
           {/* Zoom controls */}
           <div className="flex items-center gap-0.5">
             <button
-              onClick={() => setZoom(z => Math.max(MIN_ZOOM, +(z - 0.5).toFixed(1)))}
+              onClick={() => { const f = state.duration > 0 ? state.currentTime / state.duration : 0; zoomAround(f, Math.max(MIN_ZOOM, +(zoom - 0.5).toFixed(1)), zoom) }}
               className="w-4 h-4 flex items-center justify-center rounded text-zinc-400 hover:text-white hover:bg-border transition-colors text-xs font-bold leading-none"
               title="Zoom out"
             >−</button>
             <span className="text-[9px] text-zinc-500 w-6 text-center">{zoom}×</span>
             <button
-              onClick={() => setZoom(z => Math.min(MAX_ZOOM, +(z + 0.5).toFixed(1)))}
+              onClick={() => { const f = state.duration > 0 ? state.currentTime / state.duration : 0; zoomAround(f, Math.min(MAX_ZOOM, +(zoom + 0.5).toFixed(1)), zoom) }}
               className="w-4 h-4 flex items-center justify-center rounded text-zinc-400 hover:text-white hover:bg-border transition-colors text-xs font-bold leading-none"
               title="Zoom in"
             >+</button>
@@ -86,6 +135,36 @@ export function Timeline() {
         {/* Horse labels */}
         {state.horses.map((horse) => {
           const isSelected = state.selectedHorseId === horse.id
+          const sortedKfs = [...horse.keyframes].sort((a, b) => a.time - b.time)
+          const atKfIndex = sortedKfs.findIndex(k => Math.abs(k.time - state.currentTime) < KF_SNAP)
+          const atKeyframe = atKfIndex >= 0
+
+          function prevKf(e: React.MouseEvent) {
+            e.stopPropagation()
+            const prev = [...sortedKfs].reverse().find(k => k.time < state.currentTime - KF_SNAP)
+            if (prev) dispatch({ type: 'SET_CURRENT_TIME', time: prev.time })
+          }
+          function nextKf(e: React.MouseEvent) {
+            e.stopPropagation()
+            const next = sortedKfs.find(k => k.time > state.currentTime + KF_SNAP)
+            if (next) dispatch({ type: 'SET_CURRENT_TIME', time: next.time })
+          }
+          function toggleKf(e: React.MouseEvent) {
+            e.stopPropagation()
+            if (atKeyframe) {
+              const origIdx = horse.keyframes.findIndex(k => Math.abs(k.time - state.currentTime) < KF_SNAP)
+              if (origIdx >= 0) dispatch({ type: 'REMOVE_KEYFRAME', horseId: horse.id, index: origIdx })
+            } else {
+              const pos = horse.keyframes.length >= 2
+                ? interpolatePosition(horse.keyframes, state.currentTime)
+                : horse.keyframes.length === 1
+                  ? { x: horse.keyframes[0].x, y: horse.keyframes[0].y }
+                  : { x: state.canvasWidth / 2, y: state.canvasHeight / 2 }
+              dispatch({ type: 'SNAPSHOT' })
+              dispatch({ type: 'UPSERT_KEYFRAME', horseId: horse.id, time: state.currentTime, x: pos.x, y: pos.y })
+            }
+          }
+
           return (
             <div
               key={horse.id}
@@ -96,7 +175,33 @@ export function Timeline() {
               onClick={() => dispatch({ type: 'SELECT_HORSE', id: horse.id })}
             >
               <span className="flex-1 truncate px-2">{`#${horse.number} ${horse.name}`}</span>
-              {/* Eye icon on every horse row */}
+
+              {/* ◄ ◇ ► keyframe nav */}
+              <button
+                className="shrink-0 p-0.5 rounded text-zinc-600 hover:text-zinc-300 transition-colors"
+                title="Previous keyframe"
+                onClick={prevKf}
+              >
+                <MdNavigateBefore size={13} />
+              </button>
+              <button
+                onClick={toggleKf}
+                title={atKeyframe ? 'Remove keyframe at current time' : 'Add keyframe at current time'}
+                className="shrink-0 px-0.5 rounded transition-colors"
+              >
+                <div className={`w-1.5 h-1.5 rotate-45 border ${
+                  atKeyframe ? 'bg-accent border-accent' : 'bg-transparent border-zinc-600 hover:border-zinc-300'
+                }`} />
+              </button>
+              <button
+                className="shrink-0 p-0.5 rounded text-zinc-600 hover:text-zinc-300 transition-colors"
+                title="Next keyframe"
+                onClick={nextKf}
+              >
+                <MdNavigateNext size={13} />
+              </button>
+
+              {/* Eye / motion path toggle */}
               {(() => {
                 const pathOn = state.motionPathHorseIds.includes(horse.id)
                 return (
@@ -118,9 +223,11 @@ export function Timeline() {
 
       {/* ── Scrollable track area ──────────────────────────────────── */}
       <div
-        className="absolute top-0 bottom-0 overflow-x-auto"
+        ref={scrollRef}
+        className="absolute top-0 bottom-0 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden"
         style={{ left: LABEL_W, right: 0 }}
         onWheel={handleWheel}
+        onMouseDown={handlePanDown}
       >
         <div
           ref={innerRef}
@@ -202,10 +309,24 @@ function HorseTrack({
 }) {
   const { state, dispatch } = useApp()
 
+  function handleDoubleClick(e: React.MouseEvent<HTMLDivElement>) {
+    e.stopPropagation()
+    const rect = e.currentTarget.getBoundingClientRect()
+    const time = Math.max(0, Math.min(state.duration, ((e.clientX - rect.left) / rect.width) * state.duration))
+    const pos = keyframes.length >= 2
+      ? interpolatePosition(keyframes, time)
+      : keyframes.length === 1
+        ? { x: keyframes[0].x, y: keyframes[0].y }
+        : { x: state.canvasWidth / 2, y: state.canvasHeight / 2 }
+    dispatch({ type: 'SNAPSHOT' })
+    dispatch({ type: 'UPSERT_KEYFRAME', horseId, time, x: pos.x, y: pos.y })
+  }
+
   return (
     <div
       className="absolute left-0 right-0 border-b border-border/30"
       style={{ top, height: LANE_H, background: 'rgba(255,255,255,0.02)' }}
+      onDoubleClick={handleDoubleClick}
     >
       {keyframes.map((kf, idx) => {
         const pct = (kf.time / state.duration) * 100

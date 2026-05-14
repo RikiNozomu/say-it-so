@@ -1,3 +1,5 @@
+export const JSON_FILE_VERSION = 1;
+
 export type UnitSystem = 'metric' | 'imperial';
 
 export interface Keyframe {
@@ -88,7 +90,7 @@ export interface RefImage {
 }
 
 export interface ProjectFile {
-  version: '1';
+  version: number;
   name: string;
   units: UnitSystem;
   duration: number;      // seconds
@@ -98,4 +100,24 @@ export interface ProjectFile {
   horses: Horse[];
   trackShapes: TrackShape[];
   refImages: RefImage[];
+}
+
+export interface TrackFile {
+  version: number;
+  fileType: 'track';
+  name: string;
+  units: UnitSystem;
+  duration: number;
+  canvasWidth: number;
+  canvasHeight: number;
+  trackScale: number;
+  trackShapes: TrackShape[];
+  refImages: RefImage[];
+}
+
+export interface RaceFile {
+  version: number;
+  fileType: 'race';
+  name: string;
+  horses: Horse[];
 }

@@ -1,54 +1,83 @@
-# Say It So — Racehorse Match Engine
+# Say It So — Racehorse Animation Tool
 
-A browser-based animation tool for planning and visualising racehorse movements on a track. Draw the track, place horses, set keyframes, and play back the race in real time.
+A browser-based tool for choreographing and replaying racehorse movements on a custom track. Draw the track, add horses, set keyframes on a timeline, and play back the race in real time.
 
----
-
-## Owner
-
-**Riki** · rikinozomu2022@gmail.com
-
----
-
-## Objective
-
-Say It So lets trainers, analysts, and racing enthusiasts choreograph horse races visually — without writing code. You draw the track layout, add horses with custom silks, then animate their paths by dragging keyframes on a timeline. The result is a shareable, frame-accurate race replay.
+**Version:** 0.5 · **Owner:** Riki · rikinozomu2022@gmail.com
 
 ---
 
 ## Features
 
+---
+
 ### Track Editor
-- **Pen tool** — Photoshop-style bezier pen: click for corner anchors, click+drag for smooth curves, Alt+drag to break handle symmetry
-- **Track Race tool** — Variable-width bezier corridor: draws a race track with turf or dirt surface texture, adjustable track width per anchor point, white sideroad borders, and horse-length tick markers. Width can be set in px, metres, or miles
-- **Ruler tool** — Measure curved distances along any path; labels show 0 m at the start and total distance at the end, with configurable interval markers and font size
-- **Shape tools** — Rectangle, Ellipse, Polygon (N-sided), all with stroke/fill/opacity controls
-- **Shift constraint** — Hold Shift while drawing to snap angles to 15° increments; constrains rect/ellipse to square/circle
-- **Edit mode** — Double-click any shape to enter vertex editing: move anchors, add/remove points, drag endpoints together to close a path
-- **Close/Open path** — Drag one endpoint onto the other, or use the "Close Path" button; fill is enabled automatically
-- **Reference images** — Upload background images (track maps, diagrams) and adjust opacity/position
-- **Layer management** — Reorder, lock, hide, rename, and delete layers from the sidebar
-- **Undo / Redo** — Full history with Ctrl+Z / Ctrl+Y; disabled while mid-draw to prevent partial-path corruption
 
-### Horse Panel
-- Add up to 24 horses, each with a number (1–24) and name
-- Circle colour — 8 presets or a custom hex colour picker
-- Text colour — 5 presets or a custom hex colour picker; live preview in the modal
-- Edit or remove horses at any time; deletion confirms before removing all associated keyframes
-- Selected horse shows its keyframe count in the sidebar footer
+Design the race track using a full suite of vector drawing tools.
 
-### Timeline & Playback
-- Drag keyframes on the timeline to set horse positions at any point in time
-- Easing per keyframe: linear, ease-in, ease-out, ease-in-out, cubic-bezier
-- Playback speed: 0.5×, 1×, 2× preset buttons plus a fine-control slider (0.25×–4×)
-- Real-time scrubbing — click or drag on the progress bar
-- Keyboard shortcuts: Space = play/pause, ← / → = step 1 s, Esc = cancel drawing
+**Drawing tools**
+- **Pen** — Photoshop-style bezier pen: click for corner anchors, click+drag for smooth curves, Alt+drag to break handle symmetry, double-click to finish.
+- **Track Race** — Variable-width bezier race corridor. Choose turf or dirt surface texture, adjust track width and border per anchor point, and add horse-length tick markers. Supports px, metres, and miles.
+- **Ruler** — Measure curved distances along any path. Configurable unit (px / m / mi / fur), interval markers, font size, and label colours.
+- **Shapes** — Rectangle, Ellipse, and Polygon (3–32 sides) with stroke, fill, and opacity controls.
+
+**Editing**
+- **Edit mode** — Double-click any shape to enter vertex editing: move, add, or delete anchors; drag bezier handles; drag endpoints together to close a path.
+- **Shift constraint** — Snap pen angles to 15° increments; constrain rect/ellipse to square/circle.
+- **Undo / Redo** — Up to 50 steps (Ctrl+Z / Ctrl+Y). Disabled while mid-draw.
+
+**Layers & assets**
+- **Reference images** — Upload background images (track maps, diagrams); set opacity, rotation, and lock state.
+- **Layer panel** — Reorder, lock, hide, duplicate, rename, and delete any layer.
+
+---
+
+### Race Editor
+
+Place horses on the track, choreograph their paths, and play back the race.
+
+**Horses**
+- Add up to **24 horses**, each with a number (1–24), name, and custom colours.
+- **JRA palette** — 8 official Japan Racing Association bracket colours (White, Black, Red, Blue, Yellow, Green, Orange, Pink). Sets the marker colour only.
+- **RBSC palette** — 14 Royal Bangkok Sports Club fixed number+colour pairs (No.1 Red through No.14 Violet). Selecting a preset sets **both** the horse number and marker colour simultaneously.
+- **Custom colour** — Full hex colour picker for marker background and number text.
+- Drag a horse on the canvas → auto-inserts a keyframe at the current time.
+- Edit or delete horses at any time; deletion removes all associated keyframes.
+
+**Motion paths**
+- Per-horse bezier motion path shown on the canvas.
+- Toggle path visibility per horse via the eye icon in the timeline.
+- Editable handles: drag cpIn/cpOut (Alt = independent), drag anchor (Ctrl/Cmd = curve mode).
+- Keyframe navigation (◄ ◇ ►) per horse lane.
+
+**Timeline & playback**
+- Keyframe diamonds per horse lane — drag to reposition in time; snap-to-keyframe toggle.
+- Right-click a keyframe to delete it. Zoom the timeline with Ctrl+wheel.
+- Playback speed: **0.5×, 1×, 2×** presets + fine slider (**0.25×–4×**).
+- Transport controls: play, pause, stop, rewind, skip ±5 s, fast-forward.
+- Real-time progress bar scrubbing — updates every animation frame.
 
 ### Project
-- Auto-save to localStorage on every change
-- Save / Load `.json` project files
-- Metric or imperial units
-- Configurable canvas size, track scale, and race duration
+- **Save / Load** `.sayitso.json` — full project, track-only, or race-only.
+- **Auto-save** to `localStorage` on every change (1 s debounce).
+- Metric or imperial units.
+- Configurable canvas size, track scale (px/m), and race duration.
+- Speed calculator in Settings (average speed of selected horse over keyframe range).
+
+---
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|---|---|
+| `Space` | Play / Pause |
+| `Ctrl+Z` | Undo |
+| `Ctrl+Y` / `Ctrl+Shift+Z` | Redo |
+| `Delete` / `Backspace` | Delete selected layer or anchor |
+| `Esc` | Cancel drawing / exit edit mode |
+| `Shift` | Snap angle to 15° · constrain to square/circle |
+| `Alt` | Break bezier handle symmetry |
+| `Ctrl/Cmd` (on anchor drag) | Pull bezier handles instead of moving anchor |
+| `Ctrl+wheel` | Zoom canvas / zoom timeline |
 
 ---
 
@@ -61,31 +90,46 @@ Say It So lets trainers, analysts, and racing enthusiasts choreograph horse race
 | Styling | Tailwind CSS |
 | Build | Vite |
 | Monorepo | pnpm workspaces |
-| Packages | `packages/core` (shared types), `apps/web` (UI) |
+| Packages | `packages/core` (shared types + interpolation + measurement), `apps/web` (UI) |
+
+---
+
+## Project Structure
+
+```
+say-it-so/
+├── scripts/
+│   └── bump-version.sh        # code version bump (minor / major / --set X.Y)
+├── packages/
+│   └── core/                  # shared types, keyframe interpolation, measurement utils
+└── apps/
+    └── web/src/
+        ├── context/            # AppContext, reducer, actions
+        ├── hooks/              # usePlayback, useSaveLoad
+        ├── utils/              # pen geometry helpers
+        └── components/
+            ├── canvas/         # TrackCanvas, UnifiedLayer, EditOverlay, HorseLayer, MotionPathLayer, MeasurementLayer
+            ├── panels/         # TrackPanel, HorsePanel, LayersPanel, SettingsPanel
+            ├── timeline/       # Timeline, PlaybackControls
+            ├── modals/         # HorseModal
+            └── toolbar/        # Toolbar
+```
 
 ---
 
 ## Running Locally
 
-### Prerequisites
-- Node.js 20+
-- pnpm 9 — `npm install -g pnpm@9`
-
-### Steps
+**Prerequisites:** Node.js 20+ · pnpm 9 (`npm install -g pnpm@9`)
 
 ```bash
-# 1. Clone
-git clone <repo-url>
+# Clone and install
+git clone https://github.com/RikiNozomu/say-it-so
 cd say-it-so
-
-# 2. Install dependencies
 pnpm install
 
-# 3. Start dev server (hot-reload on http://localhost:5173)
+# Start dev server — http://localhost:5173
 pnpm dev
 ```
-
----
 
 ## Production Build
 
@@ -94,67 +138,32 @@ pnpm build
 # Output: apps/web/dist/
 ```
 
-Preview the production build locally:
+Preview the build locally:
 
 ```bash
 pnpm --filter web exec vite preview
 ```
 
----
-
-## Deploy with Docker
-
-### Build & run (production)
+## Docker
 
 ```bash
+# Production (port 3000)
 docker compose up --build
-# App available at http://localhost:3000
-```
 
-### Dev server with hot-reload
-
-```bash
+# Dev server with hot-reload (port 5173)
 docker compose --profile dev up
-# App available at http://localhost:5173
-```
-
-### Manual Docker build
-
-```bash
-docker build -t say-it-so .
-docker run -p 3000:80 say-it-so
 ```
 
 ---
 
-## Project Structure
+## File Format & Versioning
 
-```
-say-it-so/
-├── apps/
-│   └── web/
-│       ├── public/
-│       │   └── textures/         # SVG tile textures (turf, dirt)
-│       └── src/
-│           ├── components/       # Canvas, panels, timeline, toolbar
-│           ├── context/          # Global state (reducer + actions)
-│           ├── hooks/            # usePlayback
-│           └── utils/            # Pen, ruler, and track race geometry helpers
-└── packages/
-    └── core/                     # Shared TypeScript types (Horse, TrackShape, …)
-```
+Save files use `.sayitso.json`. Three variants:
 
----
-
-## Keyboard Shortcuts
-
-| Key | Action |
+| File | Contents |
 |---|---|
-| `Space` | Play / Pause |
-| `←` / `→` | Step timeline ±1 s |
-| `Ctrl+Z` | Undo |
-| `Ctrl+Y` / `Ctrl+Shift+Z` | Redo |
-| `Delete` / `Backspace` | Delete selected layer |
-| `Esc` | Cancel drawing / exit edit mode |
-| `Shift` | Snap angle to 15° · constrain to square/circle |
-| `Alt` | Break bezier handle symmetry |
+| Full project | track shapes + reference images + horses + keyframes |
+| Track-only | track shapes + reference images (no horses) |
+| Race-only | horses + keyframes (no track) |
+
+Files include a `version` integer for forward-compatible loading. Older files without a version field are treated as version 1.

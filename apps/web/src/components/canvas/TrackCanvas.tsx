@@ -78,7 +78,7 @@ export function TrackCanvas() {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
       if (e.code === 'Space') {
         e.preventDefault()
-        if (state.activePanel === 'horses') {
+        if (state.activePanel === 'race') {
           // Horse mode: space = toggle play/pause
           dispatch({
             type: 'SET_PLAYBACK_STATE',

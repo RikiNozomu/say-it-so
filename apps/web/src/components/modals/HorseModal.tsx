@@ -8,37 +8,35 @@ interface Props {
   onClose: () => void
 }
 
-// JRA (Japan Racing Association) 13 official base colours
+// JRA (Japan Racing Association) — 8 official bracket/cap colours, colour-only preset
 const JRA_COLORS = [
-  { name: '赤 Red',        hex: '#CC0000' },
-  { name: '桃 Pink',       hex: '#F07090' },
-  { name: '黄 Yellow',     hex: '#F5D400' },
-  { name: '緑 Green',      hex: '#2A9050' },
-  { name: '青 Blue',       hex: '#0055B3' },
-  { name: '水 Lt.Blue',    hex: '#5CB8E4' },
-  { name: '紫 Purple',     hex: '#7B2C8F' },
-  { name: '藤 Lilac',      hex: '#B57CC8' },
-  { name: '茶 Brown',      hex: '#8B5E3C' },
-  { name: 'エンジ Maroon', hex: '#8B1A1A' },
-  { name: '灰 Gray',       hex: '#888888' },
-  { name: '黒 Black',      hex: '#1C1C1C' },
-  { name: '白 White',      hex: '#F0F0F0' },
+  { name: 'White',  hex: '#F0F0F0', textColor: '#000000' },
+  { name: 'Black',  hex: '#1A1A1A', textColor: '#ffffff' },
+  { name: 'Red',    hex: '#CC0000', textColor: '#ffffff' },
+  { name: 'Blue',   hex: '#003DA5', textColor: '#ffffff' },
+  { name: 'Yellow', hex: '#FFD700', textColor: '#000000' },
+  { name: 'Green',  hex: '#2A9050', textColor: '#ffffff' },
+  { name: 'Orange', hex: '#EF6C00', textColor: '#ffffff' },
+  { name: 'Pink',   hex: '#F07090', textColor: '#ffffff' },
 ]
 
-// RBSC (Royal Bangkok Sports Club, Thailand) standard racing colours
-const RBSC_COLORS = [
-  { name: 'แดง Red',        hex: '#CC0000' },
-  { name: 'น้ำเงิน Blue',   hex: '#003DA5' },
-  { name: 'เหลือง Yellow',  hex: '#FFD700' },
-  { name: 'เขียว Green',    hex: '#1A7A3C' },
-  { name: 'ส้ม Orange',     hex: '#EF6C00' },
-  { name: 'ชมพู Pink',      hex: '#E91E8C' },
-  { name: 'ม่วง Purple',    hex: '#6A1A8A' },
-  { name: 'ฟ้า Lt.Blue',    hex: '#29B6E3' },
-  { name: 'น้ำตาล Brown',   hex: '#7A4020' },
-  { name: 'แดงเข้ม Maroon', hex: '#7B0000' },
-  { name: 'ดำ Black',       hex: '#1A1A1A' },
-  { name: 'ขาว White',      hex: '#F0F0F0' },
+// RBSC (Royal Bangkok Sports Club) — fixed number+colour pairs
+// Selecting one sets both horse number and colour simultaneously
+const RBSC_PRESETS = [
+  { number: 1,  color: '#CC0000', textColor: '#ffffff', name: 'Red' },
+  { number: 2,  color: '#FFD700', textColor: '#000000', name: 'Yellow' },
+  { number: 3,  color: '#003DA5', textColor: '#ffffff', name: 'Blue' },
+  { number: 4,  color: '#1A7A3C', textColor: '#ffffff', name: 'Green' },
+  { number: 5,  color: '#EF6C00', textColor: '#ffffff', name: 'Orange' },
+  { number: 6,  color: '#1A1A1A', textColor: '#ffffff', name: 'Black' },
+  { number: 7,  color: '#6A1A8A', textColor: '#ffffff', name: 'Purple' },
+  { number: 8,  color: '#F0F0F0', textColor: '#000000', name: 'White' },
+  { number: 9,  color: '#E91E8C', textColor: '#ffffff', name: 'Pink' },
+  { number: 10, color: '#7A4020', textColor: '#ffffff', name: 'Brown' },
+  { number: 11, color: '#29B6E3', textColor: '#ffffff', name: 'Lt.Blue' },
+  { number: 12, color: '#7B0000', textColor: '#ffffff', name: 'Maroon' },
+  { number: 13, color: '#C2185B', textColor: '#ffffff', name: 'Fuchsia' },
+  { number: 14, color: '#7B2C8F', textColor: '#ffffff', name: 'Violet' },
 ]
 
 const TEXT_COLORS = ['#ffffff', '#000000', '#fef08a', '#bfdbfe', '#bbf7d0']
@@ -65,6 +63,16 @@ export function HorseModal({ horse, onClose }: Props) {
     setForm((f) => ({ ...f, [k]: v }))
   }
 
+  function applyJra(hex: string, textColor: string) {
+    setForm((f) => ({ ...f, color: hex, textColor }))
+    setCustomTarget(null)
+  }
+
+  function applyRbsc(preset: typeof RBSC_PRESETS[number]) {
+    setForm((f) => ({ ...f, number: preset.number, color: preset.color, textColor: preset.textColor }))
+    setCustomTarget(null)
+  }
+
   function submit() {
     if (!form.name.trim()) return
     if (isEdit) {
@@ -78,7 +86,9 @@ export function HorseModal({ horse, onClose }: Props) {
     onClose()
   }
 
-  const paletteColors = colorTab === 'jra' ? JRA_COLORS : RBSC_COLORS
+  const activeRbsc = RBSC_PRESETS.find(
+    (p) => p.number === form.number && p.color.toLowerCase() === form.color.toLowerCase()
+  )
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
@@ -133,22 +143,56 @@ export function HorseModal({ horse, onClose }: Props) {
               ))}
             </div>
 
-            {/* Colour grid */}
-            <div className="grid grid-cols-7 gap-1">
-              {paletteColors.map(({ name, hex }) => (
-                <button
-                  key={hex + name}
-                  title={name}
-                  onClick={() => set('color', hex)}
-                  className={`w-7 h-7 rounded-full border-2 transition-colors ${
-                    form.color.toLowerCase() === hex.toLowerCase()
-                      ? 'border-white scale-110'
-                      : 'border-transparent hover:border-zinc-400'
-                  }`}
-                  style={{ background: hex }}
-                />
-              ))}
-            </div>
+            {colorTab === 'jra' ? (
+              /* JRA — 8 colour swatches, sets colour only */
+              <div className="grid grid-cols-8 gap-1">
+                {JRA_COLORS.map(({ name, hex, textColor }) => (
+                  <button
+                    key={hex}
+                    title={name}
+                    onClick={() => applyJra(hex, textColor)}
+                    className={`w-7 h-7 rounded-full border-2 transition-transform ${
+                      form.color.toLowerCase() === hex.toLowerCase()
+                        ? 'border-white scale-110'
+                        : 'border-transparent hover:border-zinc-400'
+                    }`}
+                    style={{ background: hex }}
+                  />
+                ))}
+              </div>
+            ) : (
+              /* RBSC — 14 number+colour pairs, sets both number and colour */
+              <div className="flex flex-col gap-0.5">
+                <p className="text-[10px] text-zinc-500 mb-0.5">
+                  Selecting a preset will also update the horse number.
+                </p>
+                <div className="grid grid-cols-2 gap-1">
+                  {RBSC_PRESETS.map((preset) => {
+                    const isActive = activeRbsc?.number === preset.number
+                    return (
+                      <button
+                        key={preset.number}
+                        title={`No.${preset.number} — ${preset.name}`}
+                        onClick={() => applyRbsc(preset)}
+                        className={`flex items-center gap-2 px-2 py-1 rounded transition-colors text-left ${
+                          isActive
+                            ? 'bg-accent/20 border border-accent'
+                            : 'border border-border hover:bg-surface'
+                        }`}
+                      >
+                        <span
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                          style={{ background: preset.color, color: preset.textColor }}
+                        >
+                          {preset.number}
+                        </span>
+                        <span className="text-xs text-zinc-300 truncate">{preset.name}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Custom picker */}
             <button

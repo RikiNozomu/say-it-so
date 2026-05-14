@@ -1,13 +1,9 @@
 import {
   MdSkipPrevious, MdFastRewind, MdPlayArrow,
   MdPause, MdStop, MdFastForward, MdSkipNext,
-  MdNavigateBefore, MdNavigateNext,
 } from 'react-icons/md'
 import { usePlayback } from '../../hooks/usePlayback'
 import { useApp } from '../../context/AppContext'
-import { interpolatePosition } from '@say-it-so/core'
-
-const KF_SNAP = 0.05  // seconds threshold for "at a keyframe"
 
 export function PlaybackControls() {
   const { state, dispatch } = useApp()
@@ -15,42 +11,6 @@ export function PlaybackControls() {
   const playing = state.playbackState === 'playing'
   const pct = state.duration > 0 ? (state.currentTime / state.duration) * 100 : 0
   const disabled = state.activePanel === 'track'
-
-  // ── Keyframe navigation helpers ───────────────────────────────────────────
-  const selectedHorse = state.horses.find(h => h.id === state.selectedHorseId)
-  const sortedKfs = selectedHorse
-    ? [...selectedHorse.keyframes].sort((a, b) => a.time - b.time)
-    : []
-  const atKfIndex = sortedKfs.findIndex(k => Math.abs(k.time - state.currentTime) < KF_SNAP)
-  const atKeyframe = atKfIndex >= 0
-
-  function prevKeyframe() {
-    const prev = [...sortedKfs].reverse().find(k => k.time < state.currentTime - KF_SNAP)
-    if (prev) dispatch({ type: 'SET_CURRENT_TIME', time: prev.time })
-  }
-  function nextKeyframe() {
-    const next = sortedKfs.find(k => k.time > state.currentTime + KF_SNAP)
-    if (next) dispatch({ type: 'SET_CURRENT_TIME', time: next.time })
-  }
-  function toggleKeyframe() {
-    if (!selectedHorse) return
-    if (atKeyframe) {
-      // Find the actual index in the original (unsorted) array
-      const origIdx = selectedHorse.keyframes.findIndex(
-        k => Math.abs(k.time - state.currentTime) < KF_SNAP
-      )
-      if (origIdx >= 0) dispatch({ type: 'REMOVE_KEYFRAME', horseId: selectedHorse.id, index: origIdx })
-    } else {
-      // Create keyframe at current time using interpolated position
-      const pos = selectedHorse.keyframes.length >= 2
-        ? interpolatePosition(selectedHorse.keyframes, state.currentTime)
-        : selectedHorse.keyframes.length === 1
-          ? { x: selectedHorse.keyframes[0].x, y: selectedHorse.keyframes[0].y }
-          : { x: state.canvasWidth / 2, y: state.canvasHeight / 2 }
-      dispatch({ type: 'SNAPSHOT' })
-      dispatch({ type: 'UPSERT_KEYFRAME', horseId: selectedHorse.id, time: state.currentTime, x: pos.x, y: pos.y })
-    }
-  }
 
   function formatTime(s: number) {
     const m = Math.floor(s / 60)
@@ -73,36 +33,7 @@ export function PlaybackControls() {
         <CtrlBtn title="Jump to end" onClick={pb.fastForward}><MdSkipNext size={18} /></CtrlBtn>
       </div>
 
-      {/* ◄ ◇ ► Keyframe navigation — horse mode only */}
-      {state.activePanel === 'horses' && (
-        <div className="flex items-center gap-0.5 shrink-0 border-l border-border pl-3">
-          <CtrlBtn title="Previous keyframe" onClick={prevKeyframe} disabled={!selectedHorse}>
-            <MdNavigateBefore size={18} />
-          </CtrlBtn>
-          <button
-            onClick={toggleKeyframe}
-            disabled={!selectedHorse}
-            title={atKeyframe ? 'Remove keyframe at current time' : 'Add keyframe at current time'}
-            className={`w-8 h-8 flex items-center justify-center rounded transition-colors disabled:opacity-30 ${
-              atKeyframe
-                ? 'text-accent hover:bg-border'
-                : 'text-zinc-400 hover:bg-border hover:text-white'
-            }`}
-          >
-            {/* Rotated square = diamond shape */}
-            <div className={`w-3 h-3 rotate-45 border ${
-              atKeyframe
-                ? 'bg-accent border-accent'
-                : 'bg-transparent border-zinc-400'
-            }`} />
-          </button>
-          <CtrlBtn title="Next keyframe" onClick={nextKeyframe} disabled={!selectedHorse}>
-            <MdNavigateNext size={18} />
-          </CtrlBtn>
-        </div>
-      )}
-
-      {/* Speed controls: preset buttons + fine slider */}
+{/* Speed controls: preset buttons + fine slider */}
       <div className={`flex items-center gap-1.5 shrink-0 ${disabled ? 'opacity-30 pointer-events-none' : ''}`}>
         {[0.5, 1, 2].map((s) => (
           <button

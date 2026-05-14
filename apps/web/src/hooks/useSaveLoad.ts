@@ -1,12 +1,81 @@
 import { useApp } from '../context/AppContext'
-import type { ProjectFile } from '@say-it-so/core'
+import { JSON_FILE_VERSION } from '@say-it-so/core'
+import type { ProjectFile, TrackFile, RaceFile } from '@say-it-so/core'
+
+function normalizeVersion(raw: unknown): number {
+  if (typeof raw === 'number') return raw
+  if (typeof raw === 'string') return parseInt(raw, 10) || 1
+  return 1  // missing version → treat as version 1
+}
+
+async function writeFile(filename: string, data: object): Promise<void> {
+  const json = JSON.stringify(data, null, 2)
+
+  if ('showSaveFilePicker' in window) {
+    try {
+      const handle = await (window as any).showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: 'Say It So file', accept: { 'application/json': ['.json'] } }],
+      })
+      const writable = await handle.createWritable()
+      await writable.write(json)
+      await writable.close()
+      return
+    } catch (e: any) {
+      if (e.name === 'AbortError') return
+      // fall through to anchor download
+    }
+  }
+
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+async function readFile(): Promise<string | null> {
+  if ('showOpenFilePicker' in window) {
+    try {
+      const [handle] = await (window as any).showOpenFilePicker({
+        types: [{ description: 'Say It So file', accept: { 'application/json': ['.json'] } }],
+        multiple: false,
+      })
+      const file = await handle.getFile()
+      return await file.text()
+    } catch (e: any) {
+      if (e.name === 'AbortError') return null
+      // fall through to input fallback
+    }
+  }
+
+  return new Promise((resolve) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.json'
+    input.onchange = () => {
+      const file = input.files?.[0]
+      if (!file) { resolve(null); return }
+      const reader = new FileReader()
+      reader.onload = (e) => resolve(e.target?.result as string ?? null)
+      reader.readAsText(file)
+    }
+    input.click()
+  })
+}
+
+function slug(name: string) {
+  return name.trim().replace(/\s+/g, '_') || 'Project'
+}
 
 export function useSaveLoad() {
   const { state, dispatch } = useApp()
 
-  function save() {
+  async function saveAll() {
     const file: ProjectFile = {
-      version: '1',
+      version: JSON_FILE_VERSION,
       name: state.projectName,
       units: state.units,
       duration: state.duration,
@@ -17,35 +86,78 @@ export function useSaveLoad() {
       trackShapes: state.trackShapes,
       refImages: state.refImages,
     }
-    const blob = new Blob([JSON.stringify(file, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${state.projectName.replace(/\s+/g, '_')}.sayitso.json`
-    a.click()
-    URL.revokeObjectURL(url)
+    await writeFile(`${slug(state.projectName)}.sayitso.json`, file)
   }
 
-  function load() {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = '.json,.sayitso.json'
-    input.onchange = () => {
-      const file = input.files?.[0]
-      if (!file) return
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        try {
-          const payload = JSON.parse(e.target?.result as string) as ProjectFile
-          dispatch({ type: 'LOAD_PROJECT', payload })
-        } catch {
-          alert('Invalid project file')
-        }
-      }
-      reader.readAsText(file)
+  async function saveTrack() {
+    const file: TrackFile = {
+      version: JSON_FILE_VERSION,
+      fileType: 'track',
+      name: state.projectName,
+      units: state.units,
+      duration: state.duration,
+      canvasWidth: state.canvasWidth,
+      canvasHeight: state.canvasHeight,
+      trackScale: state.trackScale,
+      trackShapes: state.trackShapes,
+      refImages: state.refImages,
     }
-    input.click()
+    await writeFile(`${slug(state.projectName)}_track.sayitso.json`, file)
   }
 
-  return { save, load }
+  async function saveRace() {
+    const file: RaceFile = {
+      version: JSON_FILE_VERSION,
+      fileType: 'race',
+      name: state.projectName,
+      horses: state.horses,
+    }
+    await writeFile(`${slug(state.projectName)}_race.sayitso.json`, file)
+  }
+
+  async function loadAll() {
+    const text = await readFile()
+    if (!text) return
+    try {
+      const raw = JSON.parse(text)
+      const payload: ProjectFile = { ...raw, version: normalizeVersion(raw.version) }
+      dispatch({ type: 'LOAD_PROJECT', payload })
+    } catch {
+      alert('Invalid project file')
+    }
+  }
+
+  async function loadTrack() {
+    const text = await readFile()
+    if (!text) return
+    try {
+      const raw = JSON.parse(text)
+      const payload: TrackFile = { ...raw, version: normalizeVersion(raw.version) }
+      if (payload.fileType !== 'track') {
+        alert('This file is not a track-only file. Use "Load All" to load a full project.')
+        return
+      }
+      dispatch({ type: 'LOAD_TRACK', payload })
+    } catch {
+      alert('Invalid track file')
+    }
+  }
+
+  async function loadRace() {
+    const text = await readFile()
+    if (!text) return
+    try {
+      const raw = JSON.parse(text)
+      const payload: RaceFile = { ...raw, version: normalizeVersion(raw.version) }
+      if (payload.fileType !== 'race') {
+        alert('This file is not a race-only file. Use "Load All" to load a full project.')
+        return
+      }
+      dispatch({ type: 'LOAD_RACE', payload })
+    } catch {
+      alert('Invalid race file')
+    }
+  }
+
+  return { saveAll, saveTrack, saveRace, loadAll, loadTrack, loadRace }
 }

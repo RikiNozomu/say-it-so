@@ -14,7 +14,7 @@ function Layout() {
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   const panels = {
-    horses: <HorsePanel />,
+    race: <HorsePanel />,
     track: <TrackPanel />,
     settings: <SettingsPanel />, // kept in map so reducer switch still compiles
   }

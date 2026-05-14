@@ -1,4 +1,4 @@
-import type { Horse, TrackShape, RefImage, ProjectFile } from '@say-it-so/core'
+import type { Horse, TrackShape, RefImage, ProjectFile, TrackFile, RaceFile } from '@say-it-so/core'
 import type { Action, ActiveTool, ActivePanel, PlaybackState } from './actions'
 
 export interface AppState {
@@ -51,7 +51,7 @@ export const DEFAULT_STATE: AppState = {
   panX: 0,
   panY: 0,
   activeTool: 'select',
-  activePanel: 'horses',
+  activePanel: 'race',
 
   horses: [],
   trackShapes: [],
@@ -109,6 +109,30 @@ export function reducer(state: AppState, action: Action): AppState {
         horses: p.horses,
         trackShapes: p.trackShapes,
         refImages: p.refImages,
+      }
+    }
+    case 'LOAD_TRACK': {
+      const t: TrackFile = action.payload
+      return {
+        ...state,
+        units: t.units,
+        canvasWidth: t.canvasWidth,
+        canvasHeight: t.canvasHeight,
+        trackScale: t.trackScale,
+        duration: t.duration,
+        trackShapes: t.trackShapes,
+        refImages: t.refImages,
+        selectedShapeId: null,
+        selectedRefImageId: null,
+        editingShapeId: null,
+      }
+    }
+    case 'LOAD_RACE': {
+      const r: RaceFile = action.payload
+      return {
+        ...state,
+        horses: r.horses,
+        selectedHorseId: null,
       }
     }
     case 'NEW_PROJECT':

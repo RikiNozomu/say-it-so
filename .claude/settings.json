@@ -7,13 +7,17 @@
       "Bash(apps/web/node_modules/.bin/tsc --noEmit -p apps/web/tsconfig.json)",
       "Bash(git push *)",
       "Bash(npm search *)",
-      "Bash(npx nakkas *)"
+      "Bash(npx nakkas *)",
+      "Bash(pnpm --filter @say-it-so/web tsc --noEmit)"
     ]
   },
   "mcpServers": {
     "nakkas": {
       "command": "npx",
-      "args": ["-y", "nakkas"]
+      "args": [
+        "-y",
+        "nakkas"
+      ]
     }
   }
 }

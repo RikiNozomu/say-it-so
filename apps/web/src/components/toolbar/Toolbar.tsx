@@ -1,16 +1,66 @@
-import { FiFolder, FiDownload, FiRefreshCw, FiRotateCcw, FiRotateCw, FiSettings } from 'react-icons/fi'
+import { useRef, useState, useEffect } from 'react'
+import { FiFolder, FiDownload, FiRefreshCw, FiRotateCcw, FiRotateCw, FiSettings, FiChevronDown } from 'react-icons/fi'
 import { useApp } from '../../context/AppContext'
 import { useSaveLoad } from '../../hooks/useSaveLoad'
 import type { ActivePanel } from '../../context/actions'
 
 const PANELS: { id: ActivePanel; label: string }[] = [
-  { id: 'horses', label: 'Horses' },
-  { id: 'track',  label: 'Track'  },
+  { id: 'race',  label: 'Race'  },
+  { id: 'track', label: 'Track' },
 ]
+
+function FileMenu({
+  icon,
+  label,
+  className,
+  items,
+}: {
+  icon: React.ReactNode
+  label: string
+  className: string
+  items: { label: string; sub?: string; onClick: () => void }[]
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`flex items-center gap-1 text-xs px-2 py-1 rounded transition-colors ${className}`}
+      >
+        {icon} {label} <FiChevronDown size={10} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-50 w-36 bg-zinc-800 border border-border rounded shadow-xl">
+          {items.map((item) => (
+            <button
+              key={item.label}
+              onClick={() => { item.onClick(); setOpen(false) }}
+              className="w-full text-left px-3 py-2 text-xs hover:bg-zinc-700 transition-colors"
+            >
+              <div className="text-white">{item.label}</div>
+              {item.sub && <div className="text-zinc-400 text-[10px]">{item.sub}</div>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function Toolbar({ onSettingsClick }: { onSettingsClick: () => void }) {
   const { state, dispatch, canUndo, canRedo, penDrawing } = useApp()
-  const { save, load } = useSaveLoad()
+  const { saveAll, saveTrack, saveRace, loadAll, loadTrack, loadRace } = useSaveLoad()
 
   return (
     <header className="flex items-center gap-3 px-4 h-12 bg-panel border-b border-border shrink-0">
@@ -84,7 +134,7 @@ export function Toolbar({ onSettingsClick }: { onSettingsClick: () => void }) {
         <FiRotateCw size={13} />
       </button>
 
-      {/* New / Load / Save */}
+      {/* New */}
       <button
         onClick={() => {
           if (confirm('Start a new project? Unsaved changes will be lost.'))
@@ -95,20 +145,30 @@ export function Toolbar({ onSettingsClick }: { onSettingsClick: () => void }) {
       >
         <FiRefreshCw size={12} /> New
       </button>
-      <button
-        onClick={load}
-        className="flex items-center gap-1 text-xs px-2 py-1 border border-border rounded hover:bg-border transition-colors text-zinc-300"
-        title="Load project"
-      >
-        <FiFolder size={12} /> Load
-      </button>
-      <button
-        onClick={save}
-        className="flex items-center gap-1 text-xs px-2 py-1 bg-accent hover:bg-red-500 text-white rounded transition-colors"
-        title="Save project"
-      >
-        <FiDownload size={12} /> Save
-      </button>
+
+      {/* Load dropdown */}
+      <FileMenu
+        icon={<FiFolder size={12} />}
+        label="Load"
+        className="border border-border text-zinc-300 hover:bg-border"
+        items={[
+          { label: 'All', sub: 'Full project', onClick: loadAll },
+          { label: 'Track only', onClick: loadTrack },
+          { label: 'Race only', onClick: loadRace },
+        ]}
+      />
+
+      {/* Save dropdown */}
+      <FileMenu
+        icon={<FiDownload size={12} />}
+        label="Save"
+        className="bg-accent hover:bg-red-500 text-white"
+        items={[
+          { label: 'All', sub: 'Full project', onClick: saveAll },
+          { label: 'Track only', onClick: saveTrack },
+          { label: 'Race only', onClick: saveRace },
+        ]}
+      />
     </header>
   )
 }

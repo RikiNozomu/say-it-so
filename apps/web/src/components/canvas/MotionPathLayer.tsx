@@ -57,7 +57,7 @@ export function MotionPathLayer() {
   const stageRef  = useRef<Konva.Stage | null>(null)
   const [activeKfIdx, setActiveKfIdx] = useState<number | null>(null)
 
-  if (state.activePanel !== 'horses') return null
+  if (state.activePanel !== 'race') return null
 
   const visibleHorses = state.horses.filter(h =>
     state.motionPathHorseIds.includes(h.id) && h.keyframes.length >= 1

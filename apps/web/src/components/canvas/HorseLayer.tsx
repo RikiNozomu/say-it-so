@@ -21,9 +21,9 @@ function HorseMarker({ horse, x, y, selected }: HorseMarkerProps) {
     <Group
       x={x}
       y={y}
-      draggable={state.playbackState !== 'playing' && state.activePanel === 'horses'}
+      draggable={state.playbackState !== 'playing' && state.activePanel === 'race'}
       onDragEnd={(e) => {
-        if (state.activePanel !== 'horses') return
+        if (state.activePanel !== 'race') return
         dispatch({
           type: 'UPSERT_KEYFRAME',
           horseId: horse.id,
@@ -33,7 +33,7 @@ function HorseMarker({ horse, x, y, selected }: HorseMarkerProps) {
         })
       }}
       onClick={() => {
-        if (state.activePanel !== 'horses') return
+        if (state.activePanel !== 'race') return
         dispatch({ type: 'SELECT_HORSE', id: horse.id })
       }}
     >

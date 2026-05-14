@@ -1,12 +1,12 @@
 import type {
-  Horse, TrackShape, RefImage, UnitSystem, ProjectFile,
+  Horse, TrackShape, RefImage, UnitSystem, ProjectFile, TrackFile, RaceFile,
 } from '@say-it-so/core'
 
 export type ActiveTool =
   | 'select' | 'pen' | 'rect' | 'ellipse' | 'polygon'
   | 'measure' | 'image' | 'ruler' | 'trackrace'
 
-export type ActivePanel = 'horses' | 'track'
+export type ActivePanel = 'race' | 'track'
 
 export type PlaybackState = 'idle' | 'playing' | 'paused'
 
@@ -19,6 +19,8 @@ export type Action =
   | { type: 'SET_DURATION'; duration: number }
   | { type: 'SET_TRACK_SCALE'; scale: number }
   | { type: 'LOAD_PROJECT'; payload: ProjectFile }
+  | { type: 'LOAD_TRACK'; payload: TrackFile }
+  | { type: 'LOAD_RACE'; payload: RaceFile }
   | { type: 'NEW_PROJECT' }
 
   // canvas / view
