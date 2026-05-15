@@ -603,7 +603,7 @@ export function TrackCanvas() {
   }
 
   const measureActive = state.activeTool === 'measure'
-  const isDraggableStage = spacePanning || state.activePanel === 'race' || (state.activePanel === 'track' && state.activeTool === 'select')
+  const isDraggableStage = spacePanning || state.activePanel === 'race' || state.activePanel === 'preview' || (state.activePanel === 'track' && state.activeTool === 'select')
   const isDrawing = !!drawing || !!penDraw
 
   return (
@@ -631,7 +631,7 @@ export function TrackCanvas() {
             ? 'grabbing'
             : measureActive
             ? 'crosshair'
-            : state.activePanel === 'race' || state.activeTool === 'select'
+            : state.activePanel === 'race' || state.activePanel === 'preview' || state.activeTool === 'select'
             ? 'grab'
             : isDrawing
             ? 'crosshair'
