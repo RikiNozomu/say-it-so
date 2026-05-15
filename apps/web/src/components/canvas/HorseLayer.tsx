@@ -5,7 +5,7 @@ import { useApp } from '../../context/AppContext'
 
 // Thoroughbred chest width ≈ 0.45 m; 4× visual scale for legibility
 const CHEST_WIDTH_M = 0.45
-const VISUAL_SCALE = 4
+const VISUAL_SCALE = 3
 const BORDER = 2
 
 function horseRadius(trackScale: number) {
@@ -43,13 +43,15 @@ function HorseMarker({ horse, x, y, selected }: HorseMarkerProps) {
         dispatch({ type: 'SELECT_HORSE', id: horse.id })
       }}
     >
-      {/* Selection ring */}
-      <Circle
-        radius={r + BORDER + 2}
-        stroke={selected ? '#e94560' : 'rgba(255,255,255,0.25)'}
-        strokeWidth={selected ? 2.5 : 1}
-        fill="transparent"
-      />
+      {/* Selection ring — hidden in preview mode */}
+      {state.activePanel !== 'preview' && (
+        <Circle
+          radius={r + BORDER + 2}
+          stroke={selected ? '#e94560' : 'rgba(255,255,255,0.25)'}
+          strokeWidth={selected ? 2.5 : 1}
+          fill="transparent"
+        />
+      )}
 
       {/* Solid colour circle */}
       <Circle
