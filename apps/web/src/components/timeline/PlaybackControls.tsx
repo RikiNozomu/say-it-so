@@ -114,20 +114,18 @@ export function PlaybackControls() {
 }
 
 function CtrlBtn({
-  children, onClick, title, accent, disabled,
+  children, onClick, title, accent,
 }: {
   children: React.ReactNode
   onClick: () => void
   title?: string
   accent?: boolean
-  disabled?: boolean
 }) {
   return (
     <button
       onClick={onClick}
       title={title}
-      disabled={disabled}
-      className={`w-8 h-8 flex items-center justify-center rounded transition-colors disabled:opacity-30 ${
+      className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
         accent
           ? 'bg-accent hover:bg-red-500 text-white'
           : 'text-zinc-300 hover:bg-border hover:text-white'

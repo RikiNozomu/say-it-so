@@ -87,8 +87,6 @@ say-it-so/
         │   ├── HorseLayer.tsx        # animated horse markers (race panel only)
         │   ├── MotionPathLayer.tsx   # bezier motion paths + handle editing (race panel only)
         │   ├── MeasurementLayer.tsx  # click+drag ruler overlay (measure tool only)
-        │   ├── TrackLayer.tsx        # legacy non-interactive shape renderer (unused in main flow)
-        │   └── RefImageLayer.tsx     # legacy non-interactive image renderer (unused in main flow)
         ├── panels/
         │   ├── TrackPanel.tsx        # draw tools + shape/image properties + ruler/trackrace config
         │   ├── HorsePanel.tsx        # horse CRUD + silk picker
@@ -300,7 +298,6 @@ type TrackShapeType = 'bezier' | 'rect' | 'ellipse' | 'polygon' | 'pen' | 'ruler
 - **Fill hidden for open pen paths** — condition: `type !== 'pen' || closed`
 - **Auto-save** — debounced 1s to localStorage key `say-it-so-autosave`
 - **Never add `'line'` back** — intentionally removed; pen tool handles straight lines
-- **TrackLayer.tsx / RefImageLayer.tsx are legacy** — kept for reference but not used in the main rendering flow (UnifiedLayer handles everything)
 
 ---
 

@@ -5,7 +5,7 @@ import { useApp } from '../../context/AppContext'
 
 // Thoroughbred chest width ≈ 0.45 m; 4× visual scale for legibility
 const CHEST_WIDTH_M = 0.45
-const VISUAL_SCALE = 3
+const VISUAL_SCALE = 2.5
 const BORDER = 2
 
 function horseRadius(trackScale: number) {
