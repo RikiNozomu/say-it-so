@@ -59,13 +59,14 @@ export function TrackPanel() {
         const dataUrl = e.target?.result as string
         const img = new Image()
         img.onload = () => {
+          const scale = Math.min(1, 800 / img.width, 600 / img.height)
           const refImg: RefImage = {
             id: crypto.randomUUID(),
             name: `Image ${state.refImages.length + 1}`,
             dataUrl,
             x: 50, y: 50,
-            width: Math.min(img.width, 800),
-            height: Math.min(img.height, 600),
+            width: img.width * scale,
+            height: img.height * scale,
             opacity: 1,
             order: state.refImages.length,
             locked: false,
