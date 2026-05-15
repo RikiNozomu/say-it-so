@@ -124,7 +124,7 @@ function Layout() {
           className="shrink-0 flex flex-col bg-panel border-t border-border"
           style={{ height: isPreview ? 'auto' : 200 }}
         >
-          <PlaybackControls />
+          <PlaybackControls countdown={countdown} />
           {!isPreview && (
             <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 px-4">
               <Timeline />

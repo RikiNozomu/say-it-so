@@ -5,18 +5,40 @@ import {
 import { usePlayback } from '../../hooks/usePlayback'
 import { useApp } from '../../context/AppContext'
 
-export function PlaybackControls() {
+export function PlaybackControls({ countdown }: { countdown?: number | null }) {
   const { state, dispatch } = useApp()
   const pb = usePlayback()
   const playing = state.playbackState === 'playing'
-  const pct = state.duration > 0 ? (state.currentTime / state.duration) * 100 : 0
   const disabled = state.activePanel === 'track'
 
+  const preRaceTime = state.preRaceTime
+  const hasCountdown = preRaceTime > 0
+  const isCountdown = countdown != null
+  // Extended timeline: countdown region + race duration
+  const totalTime = hasCountdown ? preRaceTime + state.duration : state.duration
+  const countdownPct = hasCountdown ? (preRaceTime / totalTime) * 100 : 0
+  const currentPos = isCountdown
+    ? Math.max(0, preRaceTime - countdown)
+    : hasCountdown ? preRaceTime + state.currentTime : state.currentTime
+  const pct = totalTime > 0 ? (currentPos / totalTime) * 100 : 0
+
   function formatTime(s: number) {
-    const m = Math.floor(s / 60)
-    const sec = Math.floor(s % 60)
-    const ms = Math.floor((s % 1) * 10)
-    return `${m}:${String(sec).padStart(2, '0')}.${ms}`
+    const abs = Math.abs(s)
+    const m = Math.floor(abs / 60)
+    const sec = Math.floor(abs % 60)
+    const ms = Math.floor((abs % 1) * 10)
+    return `${s < 0 ? '-' : ''}${m}:${String(sec).padStart(2, '0')}.${ms}`
+  }
+
+  function handleBarClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (disabled || isCountdown) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const clickRatio = (e.clientX - rect.left) / rect.width
+    if (hasCountdown && clickRatio < countdownPct / 100) return
+    const raceRatio = hasCountdown
+      ? (clickRatio - countdownPct / 100) / (1 - countdownPct / 100)
+      : clickRatio
+    dispatch({ type: 'SET_CURRENT_TIME', time: raceRatio * state.duration })
   }
 
   return (
@@ -33,7 +55,7 @@ export function PlaybackControls() {
         <CtrlBtn title="Jump to end" onClick={pb.fastForward}><MdSkipNext size={18} /></CtrlBtn>
       </div>
 
-{/* Speed controls: preset buttons + fine slider */}
+      {/* Speed controls */}
       <div className={`flex items-center gap-1.5 shrink-0 ${disabled ? 'opacity-30 pointer-events-none' : ''}`}>
         {[0.5, 1, 2].map((s) => (
           <button
@@ -58,24 +80,35 @@ export function PlaybackControls() {
         <span className="text-xs text-zinc-500 w-6">{state.playbackSpeed}×</span>
       </div>
 
-      {/* Time display */}
+      {/* Time display — negative during countdown */}
       <div className="font-mono text-sm text-zinc-300 shrink-0 w-20">
-        {formatTime(state.currentTime)}
+        {formatTime(isCountdown ? -countdown : state.currentTime)}
       </div>
 
-      {/* Progress bar / mini scrubber */}
+      {/* Progress bar — extends left into countdown region */}
       <div
         className="flex-1 relative h-1.5 bg-surface rounded cursor-pointer"
-        onClick={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect()
-          const time = ((e.clientX - rect.left) / rect.width) * state.duration
-          dispatch({ type: 'SET_CURRENT_TIME', time })
-        }}
+        onClick={handleBarClick}
       >
+        {/* Countdown background track */}
+        {hasCountdown && (
+          <div
+            className="absolute left-0 top-0 h-full bg-zinc-600 rounded-l"
+            style={{ width: `${countdownPct}%` }}
+          />
+        )}
+        {/* Filled progress */}
         <div
           className="absolute left-0 top-0 h-full bg-accent rounded"
           style={{ width: `${pct}%` }}
         />
+        {/* Divider between countdown and race */}
+        {hasCountdown && (
+          <div
+            className="absolute top-0 h-full w-px bg-zinc-400"
+            style={{ left: `${countdownPct}%` }}
+          />
+        )}
       </div>
 
       <div className="font-mono text-sm text-zinc-500 shrink-0 w-20 text-right">
