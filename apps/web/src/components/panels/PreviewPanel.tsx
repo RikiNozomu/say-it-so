@@ -3,10 +3,6 @@ import { interpolatePosition } from '@say-it-so/core'
 import type { Horse } from '@say-it-so/core'
 import { useApp } from '../../context/AppContext'
 
-interface PreviewPanelProps {
-  onStartRace: () => void
-}
-
 function computeSpeed(horse: Horse, currentTime: number, trackScale: number, units: 'metric' | 'imperial'): number {
   const DELTA = 0.05
   const p1 = interpolatePosition(horse.keyframes, currentTime)
@@ -16,7 +12,7 @@ function computeSpeed(horse: Horse, currentTime: number, trackScale: number, uni
   return units === 'metric' ? mPerSec * 3.6 : mPerSec * 2.237
 }
 
-export function PreviewPanel({ onStartRace }: PreviewPanelProps) {
+export function PreviewPanel() {
   const { state, dispatch } = useApp()
   const sorted = [...state.horses].sort((a, b) => a.number - b.number)
 
@@ -63,10 +59,10 @@ export function PreviewPanel({ onStartRace }: PreviewPanelProps) {
         })}
       </div>
 
-      {/* Pre-race time + start */}
-      <div className="shrink-0 border-t border-border p-3 space-y-2">
+      {/* Pre-race seconds */}
+      <div className="shrink-0 border-t border-border p-3">
         <div className="flex items-center gap-2">
-          <label className="text-[10px] text-zinc-400 shrink-0">Countdown (s)</label>
+          <label className="text-[10px] text-zinc-400 shrink-0">Pre-race seconds</label>
           <input
             type="number"
             min={0}
@@ -76,12 +72,6 @@ export function PreviewPanel({ onStartRace }: PreviewPanelProps) {
             className="w-full bg-zinc-800 border border-border rounded text-xs text-white px-2 py-1 focus:outline-none focus:border-accent"
           />
         </div>
-        <button
-          onClick={onStartRace}
-          className="w-full py-1.5 rounded bg-accent hover:bg-red-500 text-white text-sm font-semibold transition-colors"
-        >
-          Start Race
-        </button>
       </div>
     </div>
   )

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import { AppProvider, useApp } from './context/AppContext'
 import { Toolbar } from './components/toolbar/Toolbar'
@@ -12,21 +12,15 @@ import { Timeline } from './components/timeline/Timeline'
 import { PlaybackControls } from './components/timeline/PlaybackControls'
 
 function Layout() {
-  const { state, dispatch } = useApp()
+  const { state } = useApp()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [previewMinimized, setPreviewMinimized] = useState(false)
 
   const isTrack = state.activePanel === 'track'
   const isPreview = state.activePanel === 'preview'
 
-  const handleStartRace = useCallback(() => {
-    dispatch({ type: 'SET_PLAYBACK_STATE', state: 'idle' })
-    dispatch({ type: 'SET_CURRENT_TIME', time: -state.preRaceTime })
-    dispatch({ type: 'SET_PLAYBACK_STATE', state: 'playing' })
-  }, [dispatch, state.preRaceTime])
-
   const sidePanelContent = isPreview
-    ? <PreviewPanel onStartRace={handleStartRace} />
+    ? <PreviewPanel />
     : isTrack
     ? <TrackPanel />
     : <HorsePanel />

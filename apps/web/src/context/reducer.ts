@@ -268,8 +268,14 @@ export function reducer(state: AppState, action: Action): AppState {
         : [...ids, action.horseId]
       return { ...state, previewHorseNameIds: next }
     }
-    case 'SET_PRE_RACE_TIME':
-      return { ...state, preRaceTime: Math.max(0, action.seconds) }
+    case 'SET_PRE_RACE_TIME': {
+      const preRaceTime = Math.max(0, action.seconds)
+      return {
+        ...state,
+        preRaceTime,
+        currentTime: Math.max(-preRaceTime, state.currentTime),
+      }
+    }
     case 'REMOVE_KEYFRAME':
       return {
         ...state,
