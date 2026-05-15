@@ -34,7 +34,7 @@ bash scripts/bump-version.sh --major   # major bump
 bash scripts/bump-version.sh --set X.Y # set explicit version
 ```
 
-Current code version: **0.9** (stored as `0.9.0` in package.json — pnpm 11 requires full semver)
+Current code version: **0.10** (stored as `0.10.0` in package.json — pnpm 11 requires full semver)
 
 ### JSON file version (integer)
 - Authoritative constant: `JSON_FILE_VERSION` in `packages/core/src/types.ts`
@@ -87,11 +87,10 @@ say-it-so/
         │   ├── HorseLayer.tsx        # animated horse markers (race panel only)
         │   ├── MotionPathLayer.tsx   # bezier motion paths + handle editing (race panel only)
         │   ├── MeasurementLayer.tsx  # click+drag ruler overlay (measure tool only)
-        │   ├── TrackLayer.tsx        # legacy non-interactive shape renderer (unused in main flow)
-        │   └── RefImageLayer.tsx     # legacy non-interactive image renderer (unused in main flow)
         ├── panels/
         │   ├── TrackPanel.tsx        # draw tools + shape/image properties + ruler/trackrace config
         │   ├── HorsePanel.tsx        # horse CRUD + silk picker
+        │   ├── PreviewPanel.tsx      # preview mode: horse list + live speed + name toggles + countdown config + Start Race
         │   ├── LayersPanel.tsx       # layer list: reorder/lock/hide/delete/duplicate
         │   └── SettingsPanel.tsx     # units, canvas size, duration, speed calculator
         ├── timeline/
@@ -119,7 +118,7 @@ interface AppState {
   // view
   zoom: number; panX: number; panY: number
   activeTool: ActiveTool
-  activePanel: 'horses' | 'track'
+  activePanel: 'race' | 'track' | 'preview'
 
   // data
   horses: Horse[]
@@ -141,6 +140,10 @@ interface AppState {
 
   // motion paths
   motionPathHorseIds: string[]      // which horses show motion path overlay
+
+  // preview mode
+  preRaceTime: number               // countdown seconds before playback starts (0 = instant)
+  previewHorseNameIds: string[]     // horse IDs showing name label on canvas in preview
 }
 ```
 
@@ -219,6 +222,22 @@ canRedo: boolean
 - Fill controls only shown when `selectedShape.type !== 'pen' || selectedShape.closed`
 - Open pen paths always hide fill; `ruler` and `trackrace` never show fill controls
 
+### Preview mode
+- Activated via the **Preview** tab in Toolbar. Tab is `disabled` (pointer-events-none, dimmed) when `state.horses.length === 0`.
+- Removing the last horse while in preview automatically sets `activePanel` back to `'race'` (handled in `REMOVE_HORSE` reducer case).
+- **Layout in preview:** Timeline is hidden; PlaybackControls still visible. Sidebar is collapsible (chevron toggle). `App.tsx` holds `previewMinimized` boolean state for the sidebar.
+- **PreviewPanel** (`components/panels/PreviewPanel.tsx`):
+  - Sorted horse list with colored number circle, name, and live instantaneous speed.
+  - Speed computed by sampling `interpolatePosition` at `currentTime` and `currentTime + 0.05s`, converting px/s → m/s → km/h or mph via `trackScale`.
+  - Eye toggle per horse dispatches `TOGGLE_PREVIEW_HORSE_NAME` → adds/removes from `previewHorseNameIds`.
+  - Countdown input dispatches `SET_PRE_RACE_TIME` (clamped ≥ 0 in reducer).
+  - "Start Race" calls `onStartRace()` prop in `App.tsx`.
+- **Countdown flow (App.tsx):** `handleStartRace` resets `currentTime` to 0, then:
+  - If `preRaceTime === 0`: dispatches `SET_PLAYBACK_STATE playing` immediately.
+  - Else: sets `countdown` state to `preRaceTime`. A `useEffect` ticks it down 1/s via `setTimeout`. When it reaches 0, dispatches `SET_PLAYBACK_STATE playing` and clears countdown.
+- **CountdownOverlay:** Absolute-positioned `pointer-events-none` div over the canvas area, shows current countdown number or "GO!" at value 0.
+- **Horse name label (HorseLayer):** When `activePanel === 'preview'` and `horse.id` is in `previewHorseNameIds`, a `<Text>` node renders below the horse circle (`y = RADIUS + BORDER + 4`, centered with `x = -60` + `width = 120`).
+
 ### Playback
 - `usePlayback` hook lives in `PlaybackControls.tsx`, drives rAF loop
 - `speedRef` keeps latest `playbackSpeed` in sync — `next = currentTime + dt * speedRef.current`
@@ -279,7 +298,6 @@ type TrackShapeType = 'bezier' | 'rect' | 'ellipse' | 'polygon' | 'pen' | 'ruler
 - **Fill hidden for open pen paths** — condition: `type !== 'pen' || closed`
 - **Auto-save** — debounced 1s to localStorage key `say-it-so-autosave`
 - **Never add `'line'` back** — intentionally removed; pen tool handles straight lines
-- **TrackLayer.tsx / RefImageLayer.tsx are legacy** — kept for reference but not used in the main rendering flow (UnifiedLayer handles everything)
 
 ---
 
@@ -363,6 +381,15 @@ docker compose --profile dev up        # dev server, port 5173
 - Playback speed: 0.5×/1×/2× preset buttons + fine slider (0.25×–4×)
 - Transport controls: play/pause/stop/rewind/skip±5s/fast-forward
 - Progress bar updates every rAF frame (no CSS transition)
+
+### Preview mode
+- Dedicated tab (disabled when no horses exist)
+- Playback-only view: Timeline hidden; PlaybackControls visible
+- Side panel with horse list: number circle, name, live instantaneous speed (km/h or mph)
+- Per-horse name toggle: shows name label below horse marker on canvas
+- Sidebar minimize/expand to maximize canvas viewport
+- Countdown timer: configurable pre-race delay (default 15 s); "GO!" flash at 0
+- "Start Race" button: resets to t=0, counts down, then starts playback
 
 ### Project
 - Save/Load `.sayitso.json` (full project, track-only, or race-only)

@@ -3,8 +3,14 @@ import type { Horse } from '@say-it-so/core'
 import { interpolatePosition } from '@say-it-so/core'
 import { useApp } from '../../context/AppContext'
 
-const RADIUS = 18
+// Thoroughbred chest width ≈ 0.45 m; 4× visual scale for legibility
+const CHEST_WIDTH_M = 0.45
+const VISUAL_SCALE = 2.5
 const BORDER = 2
+
+function horseRadius(trackScale: number) {
+  return trackScale * CHEST_WIDTH_M * VISUAL_SCALE / 2
+}
 
 interface HorseMarkerProps {
   horse: Horse
@@ -15,7 +21,7 @@ interface HorseMarkerProps {
 
 function HorseMarker({ horse, x, y, selected }: HorseMarkerProps) {
   const { dispatch, state } = useApp()
-  const r = RADIUS
+  const r = horseRadius(state.trackScale)
 
   return (
     <Group
@@ -37,13 +43,15 @@ function HorseMarker({ horse, x, y, selected }: HorseMarkerProps) {
         dispatch({ type: 'SELECT_HORSE', id: horse.id })
       }}
     >
-      {/* Selection ring */}
-      <Circle
-        radius={r + BORDER + 2}
-        stroke={selected ? '#e94560' : 'rgba(255,255,255,0.25)'}
-        strokeWidth={selected ? 2.5 : 1}
-        fill="transparent"
-      />
+      {/* Selection ring — hidden in preview mode */}
+      {state.activePanel !== 'preview' && (
+        <Circle
+          radius={r + BORDER + 2}
+          stroke={selected ? '#e94560' : 'rgba(255,255,255,0.25)'}
+          strokeWidth={selected ? 2.5 : 1}
+          fill="transparent"
+        />
+      )}
 
       {/* Solid colour circle */}
       <Circle
@@ -70,6 +78,22 @@ function HorseMarker({ horse, x, y, selected }: HorseMarkerProps) {
         offsetY={r}
         listening={false}
       />
+
+      {/* Name label — preview mode only */}
+      {state.activePanel === 'preview' && state.previewHorseNameIds.includes(horse.id) && (
+        <Text
+          text={horse.name}
+          fontSize={11}
+          fill="white"
+          align="center"
+          width={120}
+          x={-60}
+          y={r + BORDER + 4}
+          listening={false}
+          shadowColor="#000"
+          shadowBlur={4}
+        />
+      )}
     </Group>
   )
 }

@@ -122,7 +122,21 @@ export function useSaveLoad() {
     if (!text) return
     try {
       const raw = JSON.parse(text)
-      const payload: ProjectFile = { ...raw, version: normalizeVersion(raw.version) }
+      if (raw.fileType === 'track') {
+        alert('This is a track-only file. Use "Load → Track only" instead.')
+        return
+      }
+      if (raw.fileType === 'race') {
+        alert('This is a race-only file. Use "Load → Race only" instead.')
+        return
+      }
+      const payload: ProjectFile = {
+        ...raw,
+        version: normalizeVersion(raw.version),
+        horses: raw.horses ?? [],
+        trackShapes: raw.trackShapes ?? [],
+        refImages: raw.refImages ?? [],
+      }
       dispatch({ type: 'LOAD_PROJECT', payload })
     } catch {
       alert('Invalid project file')
@@ -134,10 +148,19 @@ export function useSaveLoad() {
     if (!text) return
     try {
       const raw = JSON.parse(text)
-      const payload: TrackFile = { ...raw, version: normalizeVersion(raw.version) }
-      if (payload.fileType !== 'track') {
-        alert('This file is not a track-only file. Use "Load All" to load a full project.')
+      if (raw.fileType !== 'track') {
+        if (!raw.fileType) {
+          alert('This is a full project file. Use "Load → All" instead.')
+        } else {
+          alert('This is a race-only file. Use "Load → Race only" instead.')
+        }
         return
+      }
+      const payload: TrackFile = {
+        ...raw,
+        version: normalizeVersion(raw.version),
+        trackShapes: raw.trackShapes ?? [],
+        refImages: raw.refImages ?? [],
       }
       dispatch({ type: 'LOAD_TRACK', payload })
     } catch {
@@ -150,10 +173,18 @@ export function useSaveLoad() {
     if (!text) return
     try {
       const raw = JSON.parse(text)
-      const payload: RaceFile = { ...raw, version: normalizeVersion(raw.version) }
-      if (payload.fileType !== 'race') {
-        alert('This file is not a race-only file. Use "Load All" to load a full project.')
+      if (raw.fileType !== 'race') {
+        if (!raw.fileType) {
+          alert('This is a full project file. Use "Load → All" instead.')
+        } else {
+          alert('This is a track-only file. Use "Load → Track only" instead.')
+        }
         return
+      }
+      const payload: RaceFile = {
+        ...raw,
+        version: normalizeVersion(raw.version),
+        horses: raw.horses ?? [],
       }
       dispatch({ type: 'LOAD_RACE', payload })
     } catch {

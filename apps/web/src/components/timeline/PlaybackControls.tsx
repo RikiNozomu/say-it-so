@@ -9,14 +9,31 @@ export function PlaybackControls() {
   const { state, dispatch } = useApp()
   const pb = usePlayback()
   const playing = state.playbackState === 'playing'
-  const pct = state.duration > 0 ? (state.currentTime / state.duration) * 100 : 0
   const disabled = state.activePanel === 'track'
 
+  const preRaceTime = state.preRaceTime
+  const hasPreRace = preRaceTime > 0
+  const totalTime = hasPreRace ? preRaceTime + state.duration : state.duration
+  const preRacePct = hasPreRace ? (preRaceTime / totalTime) * 100 : 0
+  // currentTime ranges from -preRaceTime to duration
+  const currentPos = state.currentTime + preRaceTime
+  const pct = totalTime > 0 ? (currentPos / totalTime) * 100 : 0
+
   function formatTime(s: number) {
-    const m = Math.floor(s / 60)
-    const sec = Math.floor(s % 60)
-    const ms = Math.floor((s % 1) * 10)
-    return `${m}:${String(sec).padStart(2, '0')}.${ms}`
+    const abs = Math.abs(s)
+    const m = Math.floor(abs / 60)
+    const sec = Math.floor(abs % 60)
+    const ms = Math.floor((abs % 1) * 10)
+    return `${s < 0 ? '-' : ''}${m}:${String(sec).padStart(2, '0')}.${ms}`
+  }
+
+  function handleBarClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (disabled) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const clickRatio = (e.clientX - rect.left) / rect.width
+    // Map click position across the full extended timeline (-preRaceTime … duration)
+    const time = clickRatio * totalTime - preRaceTime
+    dispatch({ type: 'SET_CURRENT_TIME', time })
   }
 
   return (
@@ -33,7 +50,7 @@ export function PlaybackControls() {
         <CtrlBtn title="Jump to end" onClick={pb.fastForward}><MdSkipNext size={18} /></CtrlBtn>
       </div>
 
-{/* Speed controls: preset buttons + fine slider */}
+      {/* Speed controls */}
       <div className={`flex items-center gap-1.5 shrink-0 ${disabled ? 'opacity-30 pointer-events-none' : ''}`}>
         {[0.5, 1, 2].map((s) => (
           <button
@@ -58,24 +75,35 @@ export function PlaybackControls() {
         <span className="text-xs text-zinc-500 w-6">{state.playbackSpeed}×</span>
       </div>
 
-      {/* Time display */}
+      {/* Time display — negative during pre-race */}
       <div className="font-mono text-sm text-zinc-300 shrink-0 w-20">
         {formatTime(state.currentTime)}
       </div>
 
-      {/* Progress bar / mini scrubber */}
+      {/* Progress bar — extends left into pre-race region */}
       <div
         className="flex-1 relative h-1.5 bg-surface rounded cursor-pointer"
-        onClick={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect()
-          const time = ((e.clientX - rect.left) / rect.width) * state.duration
-          dispatch({ type: 'SET_CURRENT_TIME', time })
-        }}
+        onClick={handleBarClick}
       >
+        {/* Pre-race background track */}
+        {hasPreRace && (
+          <div
+            className="absolute left-0 top-0 h-full bg-zinc-600 rounded-l"
+            style={{ width: `${preRacePct}%` }}
+          />
+        )}
+        {/* Filled progress */}
         <div
           className="absolute left-0 top-0 h-full bg-accent rounded"
           style={{ width: `${pct}%` }}
         />
+        {/* Divider at t=0 */}
+        {hasPreRace && (
+          <div
+            className="absolute top-0 h-full w-px bg-zinc-400"
+            style={{ left: `${preRacePct}%` }}
+          />
+        )}
       </div>
 
       <div className="font-mono text-sm text-zinc-500 shrink-0 w-20 text-right">
@@ -86,20 +114,18 @@ export function PlaybackControls() {
 }
 
 function CtrlBtn({
-  children, onClick, title, accent, disabled,
+  children, onClick, title, accent,
 }: {
   children: React.ReactNode
   onClick: () => void
   title?: string
   accent?: boolean
-  disabled?: boolean
 }) {
   return (
     <button
       onClick={onClick}
       title={title}
-      disabled={disabled}
-      className={`w-8 h-8 flex items-center justify-center rounded transition-colors disabled:opacity-30 ${
+      className={`w-8 h-8 flex items-center justify-center rounded transition-colors ${
         accent
           ? 'bg-accent hover:bg-red-500 text-white'
           : 'text-zinc-300 hover:bg-border hover:text-white'
