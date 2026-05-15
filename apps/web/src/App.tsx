@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi'
 import { AppProvider, useApp } from './context/AppContext'
 import { Toolbar } from './components/toolbar/Toolbar'
@@ -11,53 +11,18 @@ import { LayersPanel } from './components/panels/LayersPanel'
 import { Timeline } from './components/timeline/Timeline'
 import { PlaybackControls } from './components/timeline/PlaybackControls'
 
-function CountdownOverlay({ value, onDone }: { value: number; onDone: () => void }) {
-  useEffect(() => {
-    if (value <= 0) { onDone(); return }
-  }, [value, onDone])
-
-  return (
-    <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
-      <div
-        key={value}
-        className="text-white font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] select-none"
-        style={{ fontSize: value === 0 ? '6rem' : '8rem', opacity: 0.92 }}
-      >
-        {value === 0 ? 'GO!' : value}
-      </div>
-    </div>
-  )
-}
-
 function Layout() {
   const { state, dispatch } = useApp()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [previewMinimized, setPreviewMinimized] = useState(false)
-  const [countdown, setCountdown] = useState<number | null>(null)
 
   const isTrack = state.activePanel === 'track'
   const isPreview = state.activePanel === 'preview'
 
-  // Countdown tick
-  useEffect(() => {
-    if (countdown === null) return
-    if (countdown <= 0) {
-      dispatch({ type: 'SET_PLAYBACK_STATE', state: 'playing' })
-      setCountdown(null)
-      return
-    }
-    const t = setTimeout(() => setCountdown((c) => (c ?? 1) - 1), 1000)
-    return () => clearTimeout(t)
-  }, [countdown, dispatch])
-
   const handleStartRace = useCallback(() => {
     dispatch({ type: 'SET_PLAYBACK_STATE', state: 'idle' })
-    dispatch({ type: 'SET_CURRENT_TIME', time: 0 })
-    if (state.preRaceTime === 0) {
-      dispatch({ type: 'SET_PLAYBACK_STATE', state: 'playing' })
-    } else {
-      setCountdown(state.preRaceTime)
-    }
+    dispatch({ type: 'SET_CURRENT_TIME', time: -state.preRaceTime })
+    dispatch({ type: 'SET_PLAYBACK_STATE', state: 'playing' })
   }, [dispatch, state.preRaceTime])
 
   const sidePanelContent = isPreview
@@ -109,22 +74,18 @@ function Layout() {
           </aside>
         )}
 
-        {/* Canvas — countdown overlay lives here */}
         <div className="flex-1 relative overflow-hidden">
           <TrackCanvas />
-          {countdown !== null && (
-            <CountdownOverlay value={countdown} onDone={() => setCountdown(null)} />
-          )}
         </div>
       </div>
 
-      {/* Bottom: playback + timeline — hidden during track editing; timeline hidden in preview */}
+      {/* Bottom: playback + timeline */}
       {!isTrack && (
         <div
           className="shrink-0 flex flex-col bg-panel border-t border-border"
           style={{ height: isPreview ? 'auto' : 200 }}
         >
-          <PlaybackControls countdown={countdown} />
+          <PlaybackControls />
           {!isPreview && (
             <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 px-4">
               <Timeline />

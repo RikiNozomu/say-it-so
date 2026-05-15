@@ -331,7 +331,7 @@ export function reducer(state: AppState, action: Action): AppState {
 
     // ---------- playback ----------
     case 'SET_CURRENT_TIME':
-      return { ...state, currentTime: Math.max(0, Math.min(state.duration, action.time)) }
+      return { ...state, currentTime: Math.max(-state.preRaceTime, Math.min(state.duration, action.time)) }
     case 'SET_PLAYBACK_STATE':
       return { ...state, playbackState: action.state }
     case 'SET_PLAYBACK_SPEED':

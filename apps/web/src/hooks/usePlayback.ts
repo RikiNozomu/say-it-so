@@ -12,9 +12,13 @@ export function usePlayback() {
   const currentTimeRef = useRef(state.currentTime)
   const durationRef = useRef(state.duration)
   const speedRef = useRef(state.playbackSpeed)
+  const preRaceTimeRef = useRef(state.preRaceTime)
+  const activePanelRef = useRef(state.activePanel)
   useEffect(() => { currentTimeRef.current = state.currentTime }, [state.currentTime])
   useEffect(() => { durationRef.current = state.duration }, [state.duration])
   useEffect(() => { speedRef.current = state.playbackSpeed }, [state.playbackSpeed])
+  useEffect(() => { preRaceTimeRef.current = state.preRaceTime }, [state.preRaceTime])
+  useEffect(() => { activePanelRef.current = state.activePanel }, [state.activePanel])
 
   useEffect(() => {
     if (state.playbackState !== 'playing') {
@@ -65,9 +69,9 @@ export function usePlayback() {
       dispatch({ type: 'SET_PLAYBACK_STATE', state: 'idle' })
       dispatch({ type: 'SET_CURRENT_TIME', time: 0 })
     },
-    rewind:      () => dispatch({ type: 'SET_CURRENT_TIME', time: 0 }),
+    rewind:      () => dispatch({ type: 'SET_CURRENT_TIME', time: activePanelRef.current === 'preview' ? -preRaceTimeRef.current : 0 }),
     fastForward: () => dispatch({ type: 'SET_CURRENT_TIME', time: durationRef.current }),
-    skipBack:    () => dispatch({ type: 'SET_CURRENT_TIME', time: Math.max(0, currentTimeRef.current - 5) }),
+    skipBack:    () => dispatch({ type: 'SET_CURRENT_TIME', time: currentTimeRef.current - 5 }),
     skipForward: () => dispatch({ type: 'SET_CURRENT_TIME', time: Math.min(durationRef.current, currentTimeRef.current + 5) }),
   }
 }
