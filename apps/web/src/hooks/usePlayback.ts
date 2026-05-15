@@ -67,7 +67,7 @@ export function usePlayback() {
     pause:       () => dispatch({ type: 'SET_PLAYBACK_STATE', state: 'paused' }),
     stop:        () => {
       dispatch({ type: 'SET_PLAYBACK_STATE', state: 'idle' })
-      dispatch({ type: 'SET_CURRENT_TIME', time: 0 })
+      dispatch({ type: 'SET_CURRENT_TIME', time: activePanelRef.current === 'preview' ? -preRaceTimeRef.current : 0 })
     },
     rewind:      () => dispatch({ type: 'SET_CURRENT_TIME', time: activePanelRef.current === 'preview' ? -preRaceTimeRef.current : 0 }),
     fastForward: () => dispatch({ type: 'SET_CURRENT_TIME', time: durationRef.current }),
