@@ -8,7 +8,7 @@ const CHEST_WIDTH_M = 0.45
 const BORDER = 2
 
 function horseRadius(trackScale: number) {
-  return Math.max(6, Math.min(60, trackScale * CHEST_WIDTH_M / 2))
+  return trackScale * CHEST_WIDTH_M / 2
 }
 
 interface HorseMarkerProps {
