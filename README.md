@@ -2,7 +2,7 @@
 
 A browser-based tool for choreographing and replaying racehorse movements on a custom track. Draw the track, add horses, set keyframes on a timeline, and play back the race in real time.
 
-**Version:** 0.7 · **Owner:** Riki · rikinozomu2022@gmail.com · [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+**Version:** 0.10 · **Owner:** Riki · rikinozomu2022@gmail.com · [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
 
@@ -55,6 +55,18 @@ Place horses on the track, choreograph their paths, and play back the race.
 - Playback speed: **0.5×, 1×, 2×** presets + fine slider (**0.25×–4×**).
 - Transport controls: play, pause, stop, rewind, skip ±5 s, fast-forward.
 - Real-time progress bar scrubbing — updates every animation frame.
+
+### Preview Mode
+
+Watch the race with a clean, playback-focused view.
+
+- **Preview tab** in the toolbar — enabled only when at least one horse has been added.
+- **Horse panel** lists all horses with their live instantaneous speed (km/h or mph) updated every frame.
+- **Name labels** — toggle per horse to show the horse's name below its marker on the canvas.
+- **Collapsible sidebar** — minimize to a narrow strip to maximise the canvas viewport.
+- **Countdown** — set a pre-race delay (default 15 s). Click **Start Race** to reset to t=0, run the countdown, then auto-start playback.
+
+---
 
 ### Project
 - **Save / Load** `.sayitso.json` — full project, track-only, or race-only.
@@ -109,7 +121,7 @@ say-it-so/
         ├── utils/              # pen geometry helpers
         └── components/
             ├── canvas/         # TrackCanvas, UnifiedLayer, EditOverlay, HorseLayer, MotionPathLayer, MeasurementLayer
-            ├── panels/         # TrackPanel, HorsePanel, LayersPanel, SettingsPanel
+            ├── panels/         # TrackPanel, HorsePanel, PreviewPanel, LayersPanel, SettingsPanel
             ├── timeline/       # Timeline, PlaybackControls
             ├── modals/         # HorseModal
             └── toolbar/        # Toolbar
@@ -127,7 +139,7 @@ Deployed automatically to GitHub Pages on every push to `master` via `.github/wo
 
 ## Running Locally
 
-**Prerequisites:** Node.js 20+ · pnpm 9 (`npm install -g pnpm@9`)
+**Prerequisites:** Node.js 20+ · pnpm 11 (`npm install -g pnpm@11`)
 
 ```bash
 # Clone and install

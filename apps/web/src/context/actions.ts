@@ -6,7 +6,7 @@ export type ActiveTool =
   | 'select' | 'pen' | 'rect' | 'ellipse' | 'polygon'
   | 'measure' | 'image' | 'ruler' | 'trackrace'
 
-export type ActivePanel = 'race' | 'track'
+export type ActivePanel = 'race' | 'track' | 'preview'
 
 export type PlaybackState = 'idle' | 'playing' | 'paused'
 
@@ -42,6 +42,8 @@ export type Action =
   | { type: 'UPDATE_KEYFRAME_XY_LIVE'; horseId: string; index: number; x: number; y: number }
   | { type: 'REMOVE_KEYFRAME'; horseId: string; index: number }
   | { type: 'TOGGLE_MOTION_PATHS'; horseId: string }
+  | { type: 'TOGGLE_PREVIEW_HORSE_NAME'; horseId: string }
+  | { type: 'SET_PRE_RACE_TIME'; seconds: number }
 
   // track shapes
   | { type: 'ADD_SHAPE'; shape: TrackShape }

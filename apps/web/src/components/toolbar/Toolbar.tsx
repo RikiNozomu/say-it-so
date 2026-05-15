@@ -5,8 +5,9 @@ import { useSaveLoad } from '../../hooks/useSaveLoad'
 import type { ActivePanel } from '../../context/actions'
 
 const PANELS: { id: ActivePanel; label: string }[] = [
-  { id: 'race',  label: 'Race'  },
-  { id: 'track', label: 'Track' },
+  { id: 'race',    label: 'Race'    },
+  { id: 'track',   label: 'Track'   },
+  { id: 'preview', label: 'Preview' },
 ]
 
 function FileMenu({
@@ -81,19 +82,26 @@ export function Toolbar({ onSettingsClick }: { onSettingsClick: () => void }) {
 
       {/* Panel tabs */}
       <nav className="flex gap-1">
-        {PANELS.map((p) => (
-          <button
-            key={p.id}
-            onClick={() => dispatch({ type: 'SET_ACTIVE_PANEL', panel: p.id })}
-            className={`px-3 py-1 text-sm rounded transition-colors ${
-              state.activePanel === p.id
-                ? 'bg-accent text-white'
-                : 'text-zinc-400 hover:text-white hover:bg-border'
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
+        {PANELS.map((p) => {
+          const disabled = p.id === 'preview' && state.horses.length === 0
+          return (
+            <button
+              key={p.id}
+              onClick={() => !disabled && dispatch({ type: 'SET_ACTIVE_PANEL', panel: p.id })}
+              disabled={disabled}
+              title={disabled ? 'Add horses to enable preview' : undefined}
+              className={`px-3 py-1 text-sm rounded transition-colors ${
+                state.activePanel === p.id
+                  ? 'bg-accent text-white'
+                  : disabled
+                  ? 'text-zinc-600 cursor-not-allowed'
+                  : 'text-zinc-400 hover:text-white hover:bg-border'
+              }`}
+            >
+              {p.label}
+            </button>
+          )
+        })}
       </nav>
 
       {/* Settings icon */}

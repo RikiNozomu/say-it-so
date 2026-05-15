@@ -70,6 +70,22 @@ function HorseMarker({ horse, x, y, selected }: HorseMarkerProps) {
         offsetY={r}
         listening={false}
       />
+
+      {/* Name label — preview mode only */}
+      {state.activePanel === 'preview' && state.previewHorseNameIds.includes(horse.id) && (
+        <Text
+          text={horse.name}
+          fontSize={11}
+          fill="white"
+          align="center"
+          width={120}
+          x={-60}
+          y={r + BORDER + 4}
+          listening={false}
+          shadowColor="#000"
+          shadowBlur={4}
+        />
+      )}
     </Group>
   )
 }

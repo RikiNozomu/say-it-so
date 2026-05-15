@@ -37,6 +37,10 @@ export interface AppState {
 
   // motion paths — IDs of horses whose paths are currently visible
   motionPathHorseIds: string[]
+
+  // preview mode
+  preRaceTime: number           // countdown seconds before playback starts (0 = instant)
+  previewHorseNameIds: string[] // horse IDs showing a name label on canvas in preview
 }
 
 export const DEFAULT_STATE: AppState = {
@@ -69,6 +73,9 @@ export const DEFAULT_STATE: AppState = {
   playbackSpeed: 1,
 
   motionPathHorseIds: [],
+
+  preRaceTime: 15,
+  previewHorseNameIds: [],
 }
 
 function reorder<T extends { id: string; order: number }>(
@@ -168,12 +175,16 @@ export function reducer(state: AppState, action: Action): AppState {
           h.id === action.id ? { ...h, ...action.patch } : h,
         ),
       }
-    case 'REMOVE_HORSE':
+    case 'REMOVE_HORSE': {
+      const remaining = state.horses.filter((h) => h.id !== action.id)
       return {
         ...state,
-        horses: state.horses.filter((h) => h.id !== action.id),
+        horses: remaining,
         selectedHorseId: state.selectedHorseId === action.id ? null : state.selectedHorseId,
+        // leave preview if no horses remain
+        activePanel: state.activePanel === 'preview' && remaining.length === 0 ? 'race' : state.activePanel,
       }
+    }
     case 'SELECT_HORSE':
       return { ...state, selectedHorseId: action.id }
     case 'UPSERT_KEYFRAME': {
@@ -250,6 +261,15 @@ export function reducer(state: AppState, action: Action): AppState {
         : [...ids, action.horseId]
       return { ...state, motionPathHorseIds: next }
     }
+    case 'TOGGLE_PREVIEW_HORSE_NAME': {
+      const ids = state.previewHorseNameIds
+      const next = ids.includes(action.horseId)
+        ? ids.filter(id => id !== action.horseId)
+        : [...ids, action.horseId]
+      return { ...state, previewHorseNameIds: next }
+    }
+    case 'SET_PRE_RACE_TIME':
+      return { ...state, preRaceTime: Math.max(0, action.seconds) }
     case 'REMOVE_KEYFRAME':
       return {
         ...state,
