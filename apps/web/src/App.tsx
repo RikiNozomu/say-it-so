@@ -68,9 +68,7 @@ function Layout() {
           </aside>
         )}
 
-        <div className="flex-1 relative overflow-hidden">
-          <TrackCanvas />
-        </div>
+        <TrackCanvas />
       </div>
 
       {/* Bottom: playback + timeline */}
