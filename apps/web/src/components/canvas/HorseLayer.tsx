@@ -3,12 +3,13 @@ import type { Horse } from '@say-it-so/core'
 import { interpolatePosition } from '@say-it-so/core'
 import { useApp } from '../../context/AppContext'
 
-// Thoroughbred chest width ≈ 0.45 m; circle diameter = chest width → radius = 0.225 m
+// Thoroughbred chest width ≈ 0.45 m; 4× visual scale for legibility
 const CHEST_WIDTH_M = 0.45
+const VISUAL_SCALE = 4
 const BORDER = 2
 
 function horseRadius(trackScale: number) {
-  return trackScale * CHEST_WIDTH_M / 2
+  return trackScale * CHEST_WIDTH_M * VISUAL_SCALE / 2
 }
 
 interface HorseMarkerProps {
