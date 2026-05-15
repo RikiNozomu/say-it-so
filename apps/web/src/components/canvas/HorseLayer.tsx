@@ -3,8 +3,13 @@ import type { Horse } from '@say-it-so/core'
 import { interpolatePosition } from '@say-it-so/core'
 import { useApp } from '../../context/AppContext'
 
-const RADIUS = 18
+// Standard racehorse body ≈ 2.4 m long; marker radius = half that, clamped 8–48 px
+const HORSE_LENGTH_M = 2.4
 const BORDER = 2
+
+function horseRadius(trackScale: number) {
+  return Math.max(8, Math.min(48, Math.round(trackScale * HORSE_LENGTH_M / 2)))
+}
 
 interface HorseMarkerProps {
   horse: Horse
@@ -15,7 +20,7 @@ interface HorseMarkerProps {
 
 function HorseMarker({ horse, x, y, selected }: HorseMarkerProps) {
   const { dispatch, state } = useApp()
-  const r = RADIUS
+  const r = horseRadius(state.trackScale)
 
   return (
     <Group
