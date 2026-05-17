@@ -214,7 +214,15 @@ export function reducer(state: AppState, action: Action): AppState {
           const existing = h.keyframes.findIndex((k) => Math.abs(k.time - action.time) < SNAP)
           if (existing >= 0) {
             const kfs = [...h.keyframes]
-            kfs[existing] = { ...kfs[existing], x: action.x, y: action.y }
+            const prev = kfs[existing]
+            const dx = action.x - prev.x, dy = action.y - prev.y
+            kfs[existing] = {
+              ...prev,
+              x: action.x,
+              y: action.y,
+              cpIn:  prev.cpIn  ? { x: prev.cpIn.x  + dx, y: prev.cpIn.y  + dy } : undefined,
+              cpOut: prev.cpOut ? { x: prev.cpOut.x + dx, y: prev.cpOut.y + dy } : undefined,
+            }
             return { ...h, keyframes: kfs }
           }
           return {
