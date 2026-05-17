@@ -32,10 +32,9 @@ function applyEase(t: number, ease: EaseType | undefined): number {
 }
 
 function hasSpatialCurve(before: Keyframe, after: Keyframe): boolean {
-  return (
-    (!!before.cpOut && (before.cpOut.x !== before.x || before.cpOut.y !== before.y)) ||
-    (!!after.cpIn   && (after.cpIn.x   !== after.x  || after.cpIn.y   !== after.y))
-  )
+  const outLive = !!before.cpOut && (before.cpOut.x !== before.x || before.cpOut.y !== before.y)
+  const inLive  = !!after.cpIn   && (after.cpIn.x   !== after.x  || after.cpIn.y   !== after.y)
+  return outLive && inLive
 }
 
 export function interpolatePosition(keyframes: Keyframe[], time: number): Position {

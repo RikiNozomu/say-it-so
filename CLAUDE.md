@@ -34,7 +34,7 @@ bash scripts/bump-version.sh --major   # major bump
 bash scripts/bump-version.sh --set X.Y # set explicit version
 ```
 
-Current code version: **0.15** (stored as `0.15.0` in package.json — pnpm 11 requires full semver)
+Current code version: **0.16** (stored as `0.16.0` in package.json — pnpm 11 requires full semver)
 
 ### JSON file version (integer)
 - Authoritative constant: `JSON_FILE_VERSION` in `packages/core/src/types.ts`
@@ -373,6 +373,7 @@ docker compose --profile dev up        # dev server, port 5173
 - Toggle visibility per horse via eye icon in timeline label
 - Editable handles: drag cpIn/cpOut (Alt = independent), drag anchor (Ctrl/Cmd = curve mode)
 - Right-click a keyframe diamond → "Make curved path" auto-generates **symmetric** handles aligned with the prev→next chord; length = `0.25 × min(distance to prev, distance to next)` so handles never overshoot a close neighbour
+- A segment between two keyframes is **linear** unless *both* `cpOut(before)` and `cpIn(after)` are non-trivial (corner-on-either-side ⇒ straight line). This matches `hasSpatialCurve()` in `packages/core/src/interpolate.ts` with `bezierPathD()` in `MotionPathLayer.tsx` so the motion-path render and the horse's interpolated position stay in sync. Prevents degenerate cubics that decelerate to zero entering a corner.
 - Keyframe nav buttons (◄ ◇ ►) per horse lane in timeline
 
 ### Timeline

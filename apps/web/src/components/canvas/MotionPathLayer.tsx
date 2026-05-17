@@ -29,8 +29,14 @@ function bezierPathD(sorted: Keyframe[]): string {
   const parts: string[] = [`M ${sorted[0].x} ${sorted[0].y}`]
   for (let i = 0; i < sorted.length - 1; i++) {
     const a = sorted[i], b = sorted[i + 1]
-    const c1 = cpOut(a), c2 = cpIn(b)
-    parts.push(`C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${b.x} ${b.y}`)
+    const outLive = !!a.cpOut && (a.cpOut.x !== a.x || a.cpOut.y !== a.y)
+    const inLive  = !!b.cpIn  && (b.cpIn.x  !== b.x || b.cpIn.y  !== b.y)
+    if (outLive && inLive) {
+      const c1 = cpOut(a), c2 = cpIn(b)
+      parts.push(`C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${b.x} ${b.y}`)
+    } else {
+      parts.push(`L ${b.x} ${b.y}`)
+    }
   }
   return parts.join(' ')
 }
