@@ -47,6 +47,7 @@ Place horses on the track, choreograph their paths, and play back the race.
 - Per-horse bezier motion path shown on the canvas.
 - Toggle path visibility per horse via the eye icon in the timeline.
 - Editable handles: drag cpIn/cpOut (Alt = independent), drag anchor (Ctrl/Cmd = curve mode).
+- Right-click a keyframe → **Make curved path** generates symmetric bezier handles that follow the surrounding anchors without overshooting.
 - Keyframe navigation (◄ ◇ ►) per horse lane.
 
 **Timeline & playback**

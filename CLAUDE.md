@@ -34,7 +34,7 @@ bash scripts/bump-version.sh --major   # major bump
 bash scripts/bump-version.sh --set X.Y # set explicit version
 ```
 
-Current code version: **0.13** (stored as `0.13.0` in package.json — pnpm 11 requires full semver)
+Current code version: **0.14** (stored as `0.14.0` in package.json — pnpm 11 requires full semver)
 
 ### JSON file version (integer)
 - Authoritative constant: `JSON_FILE_VERSION` in `packages/core/src/types.ts`
@@ -372,6 +372,7 @@ docker compose --profile dev up        # dev server, port 5173
 - Per-horse bezier path visible in race panel
 - Toggle visibility per horse via eye icon in timeline label
 - Editable handles: drag cpIn/cpOut (Alt = independent), drag anchor (Ctrl/Cmd = curve mode)
+- Right-click a keyframe diamond → "Make curved path" auto-generates **symmetric** handles aligned with the prev→next chord; length = `0.25 × min(distance to prev, distance to next)` so handles never overshoot a close neighbour
 - Keyframe nav buttons (◄ ◇ ►) per horse lane in timeline
 
 ### Timeline

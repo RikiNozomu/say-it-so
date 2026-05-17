@@ -494,9 +494,10 @@ function computeAutoHandles(
     const d = Math.hypot(dx, dy) || 1
     const dn = Math.hypot(next.x - kf.x, next.y - kf.y)
     const dp = Math.hypot(prev.x - kf.x, prev.y - kf.y)
+    const len = Math.min(dn, dp) * FRAC
     return {
-      cpOut: { x: kf.x + (dx / d) * dn * FRAC, y: kf.y + (dy / d) * dn * FRAC },
-      cpIn:  { x: kf.x - (dx / d) * dp * FRAC, y: kf.y - (dy / d) * dp * FRAC },
+      cpOut: { x: kf.x + (dx / d) * len, y: kf.y + (dy / d) * len },
+      cpIn:  { x: kf.x - (dx / d) * len, y: kf.y - (dy / d) * len },
     }
   } else if (next) {
     const cpOut = { x: kf.x + (next.x - kf.x) * FRAC, y: kf.y + (next.y - kf.y) * FRAC }
