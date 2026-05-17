@@ -34,7 +34,7 @@ bash scripts/bump-version.sh --major   # major bump
 bash scripts/bump-version.sh --set X.Y # set explicit version
 ```
 
-Current code version: **0.12** (stored as `0.12.0` in package.json — pnpm 11 requires full semver)
+Current code version: **0.13** (stored as `0.13.0` in package.json — pnpm 11 requires full semver)
 
 ### JSON file version (integer)
 - Authoritative constant: `JSON_FILE_VERSION` in `packages/core/src/types.ts`

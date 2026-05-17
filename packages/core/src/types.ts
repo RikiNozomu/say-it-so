@@ -2,10 +2,13 @@ export const JSON_FILE_VERSION = 1;
 
 export type UnitSystem = 'metric' | 'imperial';
 
+export type EaseType = 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
+
 export interface Keyframe {
   time: number; // seconds
   x: number;   // canvas-space pixels
   y: number;
+  ease?: EaseType; // temporal easing to the NEXT keyframe; undefined = linear
   // Spatial bezier control points for curved motion paths
   cpIn?:  { x: number; y: number }; // incoming handle (towards previous keyframe)
   cpOut?: { x: number; y: number }; // outgoing handle (towards next keyframe)

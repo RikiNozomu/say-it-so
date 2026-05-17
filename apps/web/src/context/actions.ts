@@ -1,5 +1,5 @@
 import type {
-  Horse, TrackShape, RefImage, UnitSystem, ProjectFile, TrackFile, RaceFile,
+  Horse, TrackShape, RefImage, UnitSystem, ProjectFile, TrackFile, RaceFile, EaseType,
 } from '@say-it-so/core'
 
 export type ActiveTool =
@@ -41,6 +41,7 @@ export type Action =
   | { type: 'UPDATE_KEYFRAME_CP_LIVE'; horseId: string; index: number; cpIn?: { x: number; y: number }; cpOut?: { x: number; y: number } }
   | { type: 'UPDATE_KEYFRAME_XY'; horseId: string; index: number; x: number; y: number }
   | { type: 'UPDATE_KEYFRAME_XY_LIVE'; horseId: string; index: number; x: number; y: number }
+  | { type: 'UPDATE_KEYFRAME_EASE'; horseId: string; index: number; ease: EaseType | undefined }
   | { type: 'REMOVE_KEYFRAME'; horseId: string; index: number }
   | { type: 'TOGGLE_MOTION_PATHS'; horseId: string }
   | { type: 'TOGGLE_PREVIEW_HORSE_NAME'; horseId: string }

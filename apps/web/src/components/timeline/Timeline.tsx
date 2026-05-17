@@ -1,9 +1,23 @@
 import { useRef, useState, useLayoutEffect } from 'react'
 import { FiEye, FiEyeOff } from 'react-icons/fi'
 import { MdNavigateBefore, MdNavigateNext } from 'react-icons/md'
-import type { Keyframe } from '@say-it-so/core'
+import type { EaseType, Keyframe } from '@say-it-so/core'
 import { interpolatePosition } from '@say-it-so/core'
 import { useApp } from '../../context/AppContext'
+
+const EASE_COLOR: Record<EaseType, string> = {
+  'linear':      '#808080',
+  'ease-in':     '#4a90d9',
+  'ease-out':    '#52c97a',
+  'ease-in-out': '#e94560',
+}
+
+const EASE_LABEL: Record<EaseType, string> = {
+  'linear':      'Linear',
+  'ease-in':     'Ease In',
+  'ease-out':    'Ease Out',
+  'ease-in-out': 'Ease In/Out',
+}
 
 const KF_SNAP = 0.05
 
@@ -330,14 +344,16 @@ function HorseTrack({
     >
       {keyframes.map((kf, idx) => {
         const pct = (kf.time / state.duration) * 100
-        const hasCurve = (kf.cpOut && (kf.cpOut.x !== kf.x || kf.cpOut.y !== kf.y))
-                      || (kf.cpIn  && (kf.cpIn.x  !== kf.x || kf.cpIn.y  !== kf.y))
+        const hasSpatialCurve = (
+          (!!kf.cpOut && (kf.cpOut.x !== kf.x || kf.cpOut.y !== kf.y)) ||
+          (!!kf.cpIn  && (kf.cpIn.x  !== kf.x || kf.cpIn.y  !== kf.y))
+        )
         return (
           <KeyframeDiamond
             key={idx}
             kf={kf}
             left={pct}
-            hasCurve={!!hasCurve}
+            hasSpatialCurve={hasSpatialCurve}
             snapToKf={snapToKf}
             allTimes={allTimes}
             onDrag={(newTime) =>
@@ -354,11 +370,11 @@ function HorseTrack({
 // ── Keyframe diamond ──────────────────────────────────────────────────────────
 
 function KeyframeDiamond({
-  kf, left, hasCurve, snapToKf, allTimes, onDrag, onContextMenu,
+  kf, left, hasSpatialCurve, snapToKf, allTimes, onDrag, onContextMenu,
 }: {
   kf: Keyframe
   left: number
-  hasCurve: boolean
+  hasSpatialCurve: boolean
   snapToKf: boolean
   allTimes: number[]
   onDrag: (newTime: number) => void
@@ -369,6 +385,8 @@ function KeyframeDiamond({
   const [dragLeft, setDragLeft] = useState<number | null>(null)
 
   const displayLeft = dragLeft !== null ? dragLeft : left
+  const ease = kf.ease ?? 'linear'
+  const color = EASE_COLOR[ease]
 
   function handleMouseDown(e: React.MouseEvent) {
     e.stopPropagation()
@@ -377,14 +395,13 @@ function KeyframeDiamond({
     const rect = parent.getBoundingClientRect()
     const duration = state.duration
     const selfTime = kf.time
-    // Snap targets: all keyframe times except this keyframe's own time
     const snapTargets = snapToKf ? allTimes.filter(t => t !== selfTime) : []
 
     function timeAt(me: MouseEvent) {
       const x = me.clientX - rect.left
       let t = Math.max(0, Math.min(duration, (x / rect.width) * duration))
       if (snapTargets.length > 0) {
-        const snapThreshold = (8 / rect.width) * duration  // 8px in time units
+        const snapThreshold = (8 / rect.width) * duration
         for (const candidate of snapTargets) {
           if (Math.abs(candidate - t) < snapThreshold) { t = candidate; break }
         }
@@ -409,16 +426,16 @@ function KeyframeDiamond({
   return (
     <div
       ref={parentRef}
-      className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rotate-45 cursor-grab active:cursor-grabbing border hover:border-white z-10"
-      style={{
-        left: `${displayLeft}%`,
-        background: hasCurve ? '#e94560' : '#a0a0a0',
-        borderColor: hasCurve ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.4)',
-      }}
+      className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rotate-45 cursor-grab active:cursor-grabbing border hover:border-white z-10 flex items-center justify-center"
+      style={{ left: `${displayLeft}%`, background: color, borderColor: 'rgba(255,255,255,0.5)' }}
       onMouseDown={handleMouseDown}
       onContextMenu={(e) => { e.preventDefault(); onContextMenu(e.clientX, e.clientY) }}
-      title={`t=${kf.time.toFixed(2)}s${hasCurve ? ' · curved' : ''}`}
-    />
+      title={`t=${kf.time.toFixed(2)}s · ${EASE_LABEL[ease]}${hasSpatialCurve ? ' · curved path' : ''}`}
+    >
+      {hasSpatialCurve && (
+        <div className="w-1 h-1 rounded-full bg-white opacity-80 -rotate-45 pointer-events-none" />
+      )}
+    </div>
   )
 }
 
@@ -491,6 +508,8 @@ function computeAutoHandles(
   return { cpOut: { x: kf.x + FALLBACK, y: kf.y }, cpIn: { x: kf.x - FALLBACK, y: kf.y } }
 }
 
+const EASE_OPTIONS: EaseType[] = ['linear', 'ease-in', 'ease-out', 'ease-in-out']
+
 function KeyframeContextMenu({ ctx, onClose, onDelete }: {
   ctx: ContextMenu
   onClose: () => void
@@ -500,15 +519,25 @@ function KeyframeContextMenu({ ctx, onClose, onDelete }: {
   const horse = state.horses.find(h => h.id === ctx.horseId)
   const kf = horse?.keyframes[ctx.kfIndex]
 
-  const hasCurve = kf ? (
+  const hasSpatialCurve = kf ? (
     (!!kf.cpOut && (kf.cpOut.x !== kf.x || kf.cpOut.y !== kf.y)) ||
     (!!kf.cpIn  && (kf.cpIn.x  !== kf.x || kf.cpIn.y  !== kf.y))
   ) : false
 
+  const currentEase: EaseType = kf?.ease ?? 'linear'
+
+  function handleSetEase(ease: EaseType) {
+    if (!kf) return
+    dispatch({ type: 'SNAPSHOT' })
+    dispatch({ type: 'UPDATE_KEYFRAME_EASE', horseId: ctx.horseId, index: ctx.kfIndex,
+      ease: ease === 'linear' ? undefined : ease })
+    onClose()
+  }
+
   function handleToggleCurve() {
     if (!kf || !horse) return
     dispatch({ type: 'SNAPSHOT' })
-    if (hasCurve) {
+    if (hasSpatialCurve) {
       dispatch({ type: 'UPDATE_KEYFRAME_CP', horseId: ctx.horseId, index: ctx.kfIndex,
         cpIn: { x: kf.x, y: kf.y }, cpOut: { x: kf.x, y: kf.y } })
     } else {
@@ -524,14 +553,32 @@ function KeyframeContextMenu({ ctx, onClose, onDelete }: {
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <div
-        className="fixed z-50 bg-panel border border-border rounded-lg shadow-2xl py-1 min-w-[160px]"
+        className="fixed z-50 bg-panel border border-border rounded-lg shadow-2xl py-1 min-w-[170px]"
         style={{ left: ctx.x, top: ctx.y, transform: 'translateY(-100%)' }}
       >
+        <div className="px-3 py-1 text-[10px] text-zinc-500 uppercase tracking-wide">Ease</div>
+        {EASE_OPTIONS.map((ease) => (
+          <button
+            key={ease}
+            onClick={() => handleSetEase(ease)}
+            className="flex items-center gap-2 w-full text-left px-3 py-1.5 text-xs hover:bg-border transition-colors"
+          >
+            <span
+              className="w-2.5 h-2.5 rotate-45 shrink-0 border border-white/30"
+              style={{ background: EASE_COLOR[ease] }}
+            />
+            <span className={currentEase === ease ? 'text-white font-medium' : 'text-zinc-300'}>
+              {EASE_LABEL[ease]}
+            </span>
+            {currentEase === ease && <span className="ml-auto text-white">✓</span>}
+          </button>
+        ))}
+        <div className="border-t border-border/30 my-0.5" />
         <button
           onClick={handleToggleCurve}
           className="block w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:bg-border transition-colors"
         >
-          {hasCurve ? 'Make corner point' : 'Make curve point'}
+          {hasSpatialCurve ? 'Make corner path' : 'Make curved path'}
         </button>
         <div className="border-t border-border/30 my-0.5" />
         <button

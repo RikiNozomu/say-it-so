@@ -1,4 +1,4 @@
-import type { Keyframe } from './types'
+import type { EaseType, Keyframe } from './types'
 
 export interface Position {
   x: number
@@ -21,12 +21,21 @@ function cubicBezierPos(
   }
 }
 
-function cpOut(kf: Keyframe): { x: number; y: number } {
-  return kf.cpOut ?? { x: kf.x, y: kf.y }
+// Temporal easing — remaps t in [0,1] based on ease type
+function applyEase(t: number, ease: EaseType | undefined): number {
+  switch (ease) {
+    case 'ease-in':     return t * t * t
+    case 'ease-out':    return 1 - (1 - t) ** 3
+    case 'ease-in-out': return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2
+    default:            return t  // linear
+  }
 }
 
-function cpIn(kf: Keyframe): { x: number; y: number } {
-  return kf.cpIn ?? { x: kf.x, y: kf.y }
+function hasSpatialCurve(before: Keyframe, after: Keyframe): boolean {
+  return (
+    (!!before.cpOut && (before.cpOut.x !== before.x || before.cpOut.y !== before.y)) ||
+    (!!after.cpIn   && (after.cpIn.x   !== after.x  || after.cpIn.y   !== after.y))
+  )
 }
 
 export function interpolatePosition(keyframes: Keyframe[], time: number): Position {
@@ -53,10 +62,18 @@ export function interpolatePosition(keyframes: Keyframe[], time: number): Positi
   const span = after.time - before.time
   if (span === 0) return { x: after.x, y: after.y }
 
-  const t = (time - before.time) / span
+  const tRaw = (time - before.time) / span
+  const t = applyEase(tRaw, before.ease)
 
-  const p1 = cpOut(before)
-  const p2 = cpIn(after)
+  if (hasSpatialCurve(before, after)) {
+    const p1 = before.cpOut ?? { x: before.x, y: before.y }
+    const p2 = after.cpIn   ?? { x: after.x,  y: after.y  }
+    return cubicBezierPos(t, before.x, before.y, p1.x, p1.y, p2.x, p2.y, after.x, after.y)
+  }
 
-  return cubicBezierPos(t, before.x, before.y, p1.x, p1.y, p2.x, p2.y, after.x, after.y)
+  // Linear spatial interpolation
+  return {
+    x: before.x + (after.x - before.x) * t,
+    y: before.y + (after.y - before.y) * t,
+  }
 }

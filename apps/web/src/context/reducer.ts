@@ -252,6 +252,16 @@ export function reducer(state: AppState, action: Action): AppState {
           return { ...h, keyframes: kfs }
         }),
       }
+    case 'UPDATE_KEYFRAME_EASE':
+      return {
+        ...state,
+        horses: state.horses.map((h) => {
+          if (h.id !== action.horseId) return h
+          const kfs = [...h.keyframes]
+          kfs[action.index] = { ...kfs[action.index], ease: action.ease }
+          return { ...h, keyframes: kfs }
+        }),
+      }
     case 'UPDATE_KEYFRAME_XY':
     case 'UPDATE_KEYFRAME_XY_LIVE':
       return {
