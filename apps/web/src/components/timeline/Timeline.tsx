@@ -172,7 +172,7 @@ export function Timeline() {
                 isSelected ? 'bg-accent/20' : 'bg-panel hover:bg-border/40'
               }`}
               style={{ height: LANE_H }}
-              onClick={() => dispatch({ type: 'SELECT_HORSE', id: horse.id })}
+              onClick={() => dispatch({ type: 'SELECT_HORSE', id: isSelected ? null : horse.id })}
             >
               <span className="flex-1 truncate px-2">{`#${horse.number} ${horse.name}`}</span>
 
@@ -465,18 +465,75 @@ function Playhead() {
 
 // ── Context menu ──────────────────────────────────────────────────────────────
 
+function computeAutoHandles(
+  kf: Keyframe,
+  prev?: Keyframe,
+  next?: Keyframe,
+): { cpIn: { x: number; y: number }; cpOut: { x: number; y: number } } {
+  const FRAC = 0.25
+  const FALLBACK = 40
+  if (next && prev) {
+    const dx = next.x - prev.x, dy = next.y - prev.y
+    const d = Math.hypot(dx, dy) || 1
+    const dn = Math.hypot(next.x - kf.x, next.y - kf.y)
+    const dp = Math.hypot(prev.x - kf.x, prev.y - kf.y)
+    return {
+      cpOut: { x: kf.x + (dx / d) * dn * FRAC, y: kf.y + (dy / d) * dn * FRAC },
+      cpIn:  { x: kf.x - (dx / d) * dp * FRAC, y: kf.y - (dy / d) * dp * FRAC },
+    }
+  } else if (next) {
+    const cpOut = { x: kf.x + (next.x - kf.x) * FRAC, y: kf.y + (next.y - kf.y) * FRAC }
+    return { cpOut, cpIn: { x: 2 * kf.x - cpOut.x, y: 2 * kf.y - cpOut.y } }
+  } else if (prev) {
+    const cpIn = { x: kf.x + (prev.x - kf.x) * FRAC, y: kf.y + (prev.y - kf.y) * FRAC }
+    return { cpIn, cpOut: { x: 2 * kf.x - cpIn.x, y: 2 * kf.y - cpIn.y } }
+  }
+  return { cpOut: { x: kf.x + FALLBACK, y: kf.y }, cpIn: { x: kf.x - FALLBACK, y: kf.y } }
+}
+
 function KeyframeContextMenu({ ctx, onClose, onDelete }: {
   ctx: ContextMenu
   onClose: () => void
   onDelete: () => void
 }) {
+  const { state, dispatch } = useApp()
+  const horse = state.horses.find(h => h.id === ctx.horseId)
+  const kf = horse?.keyframes[ctx.kfIndex]
+
+  const hasCurve = kf ? (
+    (!!kf.cpOut && (kf.cpOut.x !== kf.x || kf.cpOut.y !== kf.y)) ||
+    (!!kf.cpIn  && (kf.cpIn.x  !== kf.x || kf.cpIn.y  !== kf.y))
+  ) : false
+
+  function handleToggleCurve() {
+    if (!kf || !horse) return
+    dispatch({ type: 'SNAPSHOT' })
+    if (hasCurve) {
+      dispatch({ type: 'UPDATE_KEYFRAME_CP', horseId: ctx.horseId, index: ctx.kfIndex,
+        cpIn: { x: kf.x, y: kf.y }, cpOut: { x: kf.x, y: kf.y } })
+    } else {
+      const sortedKfs = [...horse.keyframes].sort((a, b) => a.time - b.time)
+      const pos = sortedKfs.indexOf(kf)
+      const { cpIn, cpOut } = computeAutoHandles(kf, sortedKfs[pos - 1], sortedKfs[pos + 1])
+      dispatch({ type: 'UPDATE_KEYFRAME_CP', horseId: ctx.horseId, index: ctx.kfIndex, cpIn, cpOut })
+    }
+    onClose()
+  }
+
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <div
-        className="fixed z-50 bg-panel border border-border rounded-lg shadow-2xl py-1 min-w-[140px]"
+        className="fixed z-50 bg-panel border border-border rounded-lg shadow-2xl py-1 min-w-[160px]"
         style={{ left: ctx.x, top: ctx.y, transform: 'translateY(-100%)' }}
       >
+        <button
+          onClick={handleToggleCurve}
+          className="block w-full text-left px-3 py-1.5 text-xs text-zinc-300 hover:bg-border transition-colors"
+        >
+          {hasCurve ? 'Make corner point' : 'Make curve point'}
+        </button>
+        <div className="border-t border-border/30 my-0.5" />
         <button
           onClick={onDelete}
           className="block w-full text-left px-3 py-1.5 text-xs text-accent hover:bg-border transition-colors"

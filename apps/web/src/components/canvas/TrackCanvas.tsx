@@ -334,6 +334,21 @@ export function TrackCanvas() {
     }
     if (e.evt.button !== 0) return  // ignore right mouse button
     if (spaceHeld.current) return   // space panning — Stage draggable handles it
+    if (state.activePanel === 'race' || state.activePanel === 'preview') {
+      // Deselect horse on empty-space click (when MotionPathLayer not rendered)
+      if (e.target === e.target.getStage() && state.selectedHorseId) {
+        let moved = false
+        const onMove = () => { moved = true }
+        const onUp = () => {
+          window.removeEventListener('mousemove', onMove)
+          window.removeEventListener('mouseup', onUp)
+          if (!moved) dispatch({ type: 'SELECT_HORSE', id: null })
+        }
+        window.addEventListener('mousemove', onMove)
+        window.addEventListener('mouseup', onUp)
+      }
+      return
+    }
     if (state.activePanel !== 'track') return
     // While editing a shape all canvas interaction is locked to the EditOverlay
     if (state.editingShapeId) return

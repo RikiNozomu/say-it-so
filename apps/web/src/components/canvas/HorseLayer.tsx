@@ -40,7 +40,7 @@ function HorseMarker({ horse, x, y, selected }: HorseMarkerProps) {
       }}
       onClick={() => {
         if (state.activePanel !== 'race') return
-        dispatch({ type: 'SELECT_HORSE', id: horse.id })
+        dispatch({ type: 'SELECT_HORSE', id: state.selectedHorseId === horse.id ? null : horse.id })
       }}
     >
       {/* Selection ring — hidden in preview mode */}

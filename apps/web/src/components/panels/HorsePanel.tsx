@@ -47,7 +47,7 @@ export function HorsePanel() {
         {state.horses.map((h) => (
           <div
             key={h.id}
-            onClick={() => dispatch({ type: 'SELECT_HORSE', id: h.id })}
+            onClick={() => dispatch({ type: 'SELECT_HORSE', id: state.selectedHorseId === h.id ? null : h.id })}
             className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-border/40 border-b border-border/30 transition-colors ${
               state.selectedHorseId === h.id ? 'bg-border/60' : ''
             }`}

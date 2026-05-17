@@ -174,18 +174,21 @@ export function MotionPathLayer() {
       const hasCpIn  = kf.cpIn  && (kf.cpIn.x  !== kf.x || kf.cpIn.y  !== kf.y)
 
       if (hasCpOut && Math.hypot(mx - out.x, my - out.y) < cr * 2) {
+        e.cancelBubble = true
         dispatch({ type: 'SNAPSHOT' })
         dragRef.current = { kind: 'cpOut', horseId: selectedHorseId, kfIndex: origIdx, origX: out.x, origY: out.y, startMx: mx, startMy: my, symmetric: !e.evt.altKey }
         attachDragListeners(stage)
         return
       }
       if (hasCpIn && Math.hypot(mx - inn.x, my - inn.y) < cr * 2) {
+        e.cancelBubble = true
         dispatch({ type: 'SNAPSHOT' })
         dragRef.current = { kind: 'cpIn', horseId: selectedHorseId, kfIndex: origIdx, origX: inn.x, origY: inn.y, startMx: mx, startMy: my, symmetric: !e.evt.altKey }
         attachDragListeners(stage)
         return
       }
       if (Math.abs(mx - kf.x) <= hs * 1.5 && Math.abs(my - kf.y) <= hs * 1.5) {
+        e.cancelBubble = true
         dispatch({ type: 'SNAPSHOT' })
         setActiveKfIdx(origIdx)
         const kind: HandleKind = (e.evt.ctrlKey || e.evt.metaKey) ? 'anchor' : 'anchor-move'
@@ -194,6 +197,17 @@ export function MotionPathLayer() {
         return
       }
     }
+
+    // No hit — deselect on pure click (not drag)
+    let moved = false
+    const onMove = () => { moved = true }
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+      if (!moved) dispatch({ type: 'SELECT_HORSE', id: null })
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
   }
 
   // ── render ────────────────────────────────────────────────────────────────
@@ -243,13 +257,15 @@ export function MotionPathLayer() {
                     <Circle x={inn.x} y={inn.y} radius={cr}
                       fill="#ff6b8a" stroke="#fff" strokeWidth={0.5 / z} listening={false} />
                   )}
-                  {/* Anchor square */}
-                  <Rect
-                    x={kf.x - (isActive ? hs * 1.4 : hs)} y={kf.y - (isActive ? hs * 1.4 : hs)}
-                    width={isActive ? hs * 2.8 : hs * 2} height={isActive ? hs * 2.8 : hs * 2}
-                    fill={isActive ? '#fff' : '#e94560'} stroke={isActive ? '#e94560' : '#fff'}
-                    strokeWidth={1 / z} opacity={isEditable ? 1 : 0.4} listening={false}
-                  />
+                  {/* Anchor square — selected horse only */}
+                  {isEditable && (
+                    <Rect
+                      x={kf.x - (isActive ? hs * 1.4 : hs)} y={kf.y - (isActive ? hs * 1.4 : hs)}
+                      width={isActive ? hs * 2.8 : hs * 2} height={isActive ? hs * 2.8 : hs * 2}
+                      fill={isActive ? '#fff' : '#e94560'} stroke={isActive ? '#e94560' : '#fff'}
+                      strokeWidth={1 / z} listening={false}
+                    />
+                  )}
                 </React.Fragment>
               )
             })}
