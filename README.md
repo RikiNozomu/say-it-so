@@ -41,7 +41,7 @@ Place horses on the track, choreograph their paths, and play back the race.
 - **RBSC palette** — 14 Royal Bangkok Sports Club fixed number+colour pairs (No.1 Red through No.14 Violet). Selecting a preset sets **both** the horse number and marker colour simultaneously.
 - **Custom colour** — Full hex colour picker for marker background and number text.
 - Drag a horse on the canvas → auto-inserts a keyframe at the current time.
-- Edit or delete horses at any time; deletion removes all associated keyframes.
+- Edit, duplicate, or delete horses at any time; duplication copies all keyframes and motion path handles; deletion removes all associated keyframes.
 
 **Motion paths**
 - Per-horse bezier motion path shown on the canvas.

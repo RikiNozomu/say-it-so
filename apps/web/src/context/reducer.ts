@@ -185,6 +185,24 @@ export function reducer(state: AppState, action: Action): AppState {
         activePanel: state.activePanel === 'preview' && remaining.length === 0 ? 'race' : state.activePanel,
       }
     }
+    case 'DUPLICATE_HORSE': {
+      const src = state.horses.find((h) => h.id === action.id)
+      if (!src) return state
+      const copy = {
+        ...src,
+        id: crypto.randomUUID(),
+        name: src.name ? `${src.name} copy` : '',
+        keyframes: src.keyframes.map((kf) => ({
+          ...kf,
+          cpIn: kf.cpIn ? { ...kf.cpIn } : undefined,
+          cpOut: kf.cpOut ? { ...kf.cpOut } : undefined,
+        })),
+      }
+      const idx = state.horses.findIndex((h) => h.id === action.id)
+      const next = [...state.horses]
+      next.splice(idx + 1, 0, copy)
+      return { ...state, horses: next, selectedHorseId: copy.id }
+    }
     case 'SELECT_HORSE':
       return { ...state, selectedHorseId: action.id }
     case 'UPSERT_KEYFRAME': {

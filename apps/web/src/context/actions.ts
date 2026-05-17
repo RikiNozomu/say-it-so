@@ -33,6 +33,7 @@ export type Action =
   | { type: 'ADD_HORSE'; horse: Horse }
   | { type: 'UPDATE_HORSE'; id: string; patch: Partial<Omit<Horse, 'id' | 'keyframes'>> }
   | { type: 'REMOVE_HORSE'; id: string }
+  | { type: 'DUPLICATE_HORSE'; id: string }
   | { type: 'SELECT_HORSE'; id: string | null }
   | { type: 'UPSERT_KEYFRAME'; horseId: string; time: number; x: number; y: number }
   | { type: 'UPDATE_KEYFRAME_TIME'; horseId: string; index: number; newTime: number }

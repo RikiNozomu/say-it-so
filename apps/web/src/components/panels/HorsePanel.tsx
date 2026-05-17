@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FiEdit2, FiTrash2, FiPlus } from 'react-icons/fi'
+import { FiEdit2, FiTrash2, FiPlus, FiCopy } from 'react-icons/fi'
 import type { Horse } from '@say-it-so/core'
 import { useApp } from '../../context/AppContext'
 import { HorseModal } from '../modals/HorseModal'
@@ -65,6 +65,14 @@ export function HorsePanel() {
                 title="Edit"
               >
                 <FiEdit2 size={13} />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); if (canAdd) dispatch({ type: 'DUPLICATE_HORSE', id: h.id }) }}
+                disabled={!canAdd}
+                className="p-1 text-zinc-400 hover:text-white rounded hover:bg-border transition-colors disabled:opacity-30"
+                title="Duplicate"
+              >
+                <FiCopy size={13} />
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); setConfirmDelete(h.id) }}

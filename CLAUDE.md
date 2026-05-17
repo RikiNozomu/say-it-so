@@ -34,7 +34,7 @@ bash scripts/bump-version.sh --major   # major bump
 bash scripts/bump-version.sh --set X.Y # set explicit version
 ```
 
-Current code version: **0.10** (stored as `0.10.0` in package.json — pnpm 11 requires full semver)
+Current code version: **0.11** (stored as `0.11.0` in package.json — pnpm 11 requires full semver)
 
 ### JSON file version (integer)
 - Authoritative constant: `JSON_FILE_VERSION` in `packages/core/src/types.ts`
@@ -365,6 +365,7 @@ docker compose --profile dev up        # dev server, port 5173
 - **RBSC palette** — 14 fixed number+colour pairs (No.1–14). Clicking a preset sets **both** `form.number` and `form.color` (plus an auto text colour). Defined in `RBSC_PRESETS` in `HorseModal.tsx`.
 - Custom base + text colour per horse via `HexColorPicker`
 - Drag horse on canvas → auto-upserts keyframe at `currentTime`
+- Duplicate horse button in HorsePanel — deep-copies horse (including all keyframes + bezier handles), appends name with " copy", inserts immediately after source in list, selects the copy; disabled when at 24-horse limit
 - Max 24 horses
 
 ### Motion paths
